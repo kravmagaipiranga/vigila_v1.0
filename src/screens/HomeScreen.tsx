@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../firebase';
 import { Contact } from '../types';
-import { searchLocation, PlaceResult } from '../services/geminiService';
+import { searchLocation, reverseGeocode, PlaceResult } from '../services/geminiService';
 
 interface HomeProps {
   setActiveTab: (tab: string) => void;
@@ -16,6 +16,7 @@ const HomeScreen: React.FC<HomeProps> = ({ setActiveTab }) => {
   const [sendingAlert, setSendingAlert] = useState(false);
   const [locationStatus, setLocationStatus] = useState<'idle' | 'fetching' | 'success' | 'error'>('idle');
   const [currentLocation, setCurrentLocation] = useState<string | null>(null);
+  const [currentCoords, setCurrentCoords] = useState<string>('');
   const [isAlarmActive, setIsAlarmActive] = useState(false);
   const [isManualLocationModalOpen, setIsManualLocationModalOpen] = useState(false);
   const [manualLocationInput, setManualLocationInput] = useState('');
@@ -147,7 +148,11 @@ const HomeScreen: React.FC<HomeProps> = ({ setActiveTab }) => {
       });
 
       const { latitude, longitude } = position.coords;
-      setCurrentLocation(`${latitude.toFixed(4)}, ${longitude.toFixed(4)}`);
+      setCurrentCoords(`${latitude.toFixed(4)}, ${longitude.toFixed(4)}`);
+      
+      // Reverse geocode to get human-readable address
+      const address = await reverseGeocode(latitude, longitude);
+      setCurrentLocation(address);
       setLocationStatus('success');
     } catch (error: any) {
       console.error('Error getting location:', error);
@@ -168,12 +173,12 @@ const HomeScreen: React.FC<HomeProps> = ({ setActiveTab }) => {
     let mapsUrl = '';
     
     if (locationStatus === 'success' && currentLocation) {
-      // If we have a location string, we use it. 
-      // If it's coordinates, we make a maps link. If it's text, we just send text.
-      if (currentLocation.includes(',')) {
-        mapsUrl = `https://www.google.com/maps?q=${currentLocation.replace(' ', '')}`;
+      // If we have coordinates stored, we use them for the link.
+      // Otherwise we use the text.
+      if (currentCoords) {
+        mapsUrl = `https://www.google.com/maps?q=${currentCoords.replace(' ', '')} (${currentLocation})`;
       } else {
-        mapsUrl = `Localização manual: ${currentLocation}`;
+        mapsUrl = `Localização: ${currentLocation}`;
       }
     } else {
       setLocationStatus('fetching');
@@ -187,8 +192,14 @@ const HomeScreen: React.FC<HomeProps> = ({ setActiveTab }) => {
         });
 
         const { latitude, longitude } = position.coords;
-        mapsUrl = `https://www.google.com/maps?q=${latitude},${longitude}`;
-        setCurrentLocation(`${latitude.toFixed(4)}, ${longitude.toFixed(4)}`);
+        const coordsStr = `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`;
+        setCurrentCoords(coordsStr);
+        
+        // Try to get address for the text
+        const address = await reverseGeocode(latitude, longitude);
+        setCurrentLocation(address);
+        
+        mapsUrl = `https://www.google.com/maps?q=${latitude},${longitude} (${address})`;
         setLocationStatus('success');
       } catch (error: any) {
         console.error('Error getting location:', error);
@@ -253,9 +264,8 @@ const HomeScreen: React.FC<HomeProps> = ({ setActiveTab }) => {
   };
 
   const selectLocation = (place: PlaceResult) => {
-    setCurrentLocation(`${place.location.lat.toFixed(4)}, ${place.location.lng.toFixed(4)}`);
-    // We could also store the name/address if we want to show it in the UI instead of coords
-    // For now, let's show the address if available
+    setCurrentCoords(`${place.location.lat.toFixed(4)}, ${place.location.lng.toFixed(4)}`);
+    setCurrentLocation(place.address || place.name);
     setManualLocationInput(place.address || place.name);
     setLocationStatus('success');
     setIsManualLocationModalOpen(false);
@@ -266,6 +276,7 @@ const HomeScreen: React.FC<HomeProps> = ({ setActiveTab }) => {
     e.preventDefault();
     if (manualLocationInput.trim()) {
       setCurrentLocation(manualLocationInput.trim());
+      setCurrentCoords(''); // Clear coordinates if manually entered text
       setLocationStatus('success');
       setIsManualLocationModalOpen(false);
     }
@@ -313,37 +324,50 @@ const HomeScreen: React.FC<HomeProps> = ({ setActiveTab }) => {
       </div>
 
       {/* Location Status & Alert Button */}
-      <div className="bg-ardosia border border-ouro/10 rounded-3xl p-5 space-y-4">
-        <div className="flex items-center gap-4">
-          <div className="w-12 h-12 bg-ouro/10 rounded-2xl flex items-center justify-center text-ouro">
-            <MapPin size={24} />
+      <div className="bg-ardosia border border-ouro/10 rounded-3xl p-4 sm:p-5 space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+          <div className="flex items-center gap-4 flex-1 min-w-0">
+            <div className="w-12 h-12 bg-ouro/10 rounded-2xl flex-shrink-0 flex items-center justify-center text-ouro shadow-inner shadow-ouro/5">
+              <MapPin size={24} />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2 mb-0.5">
+                <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-ouro/50">Sua Localização</h3>
+                <div className={`flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest transition-all ${
+                  locationStatus === 'success' ? 'text-esmeralda bg-esmeralda/10' : 
+                  locationStatus === 'fetching' ? 'text-ouro bg-ouro/10' : 'text-alerta bg-alerta/10'
+                }`}>
+                  <div className={`w-1 h-1 rounded-full ${
+                    locationStatus === 'success' ? 'bg-esmeralda animate-pulse' : 
+                    locationStatus === 'fetching' ? 'bg-ouro animate-ping' : 'bg-alerta'
+                  }`} />
+                  {locationStatus === 'fetching' ? 'Buscando' : locationStatus === 'success' ? 'Ativo' : 'Erro'}
+                </div>
+              </div>
+              <p className="text-pergaminho font-bold text-sm truncate leading-tight">
+                {locationStatus === 'success' ? currentLocation : 'São Paulo, SP, Brasil'}
+              </p>
+            </div>
           </div>
-          <div className="flex-1">
-            <h3 className="text-sm font-bold uppercase tracking-wide text-ouro">Sua Localização</h3>
-            <p className="text-pergaminho/60 text-xs font-medium truncate max-w-[150px]">
-              {locationStatus === 'success' ? currentLocation : 'São Paulo, SP - Brasil'}
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
+
+          <div className="flex items-center gap-2 sm:self-center">
             <button 
               onClick={handleAutoLocation}
               disabled={locationStatus === 'fetching'}
-              className="p-2 bg-obsidiana text-ouro/60 rounded-xl hover:text-ouro transition-colors disabled:opacity-50"
+              className="flex-1 sm:flex-none flex items-center justify-center gap-2 py-2.5 px-4 bg-obsidiana border border-ouro/5 text-ouro/60 rounded-xl hover:text-ouro hover:border-ouro/20 transition-all disabled:opacity-50 active:scale-95"
               title="Identificar automaticamente"
             >
-              <RefreshCw size={16} className={locationStatus === 'fetching' ? 'animate-spin' : ''} />
+              <RefreshCw size={14} className={locationStatus === 'fetching' ? 'animate-spin' : ''} />
+              <span className="text-[9px] font-black uppercase tracking-widest sm:hidden">Auto</span>
             </button>
             <button 
               onClick={() => setIsManualLocationModalOpen(true)}
-              className="p-2 bg-obsidiana text-ouro/60 rounded-xl hover:text-ouro transition-colors"
+              className="flex-1 sm:flex-none flex items-center justify-center gap-2 py-2.5 px-4 bg-obsidiana border border-ouro/5 text-ouro/60 rounded-xl hover:text-ouro hover:border-ouro/20 transition-all active:scale-95"
               title="Definir manualmente"
             >
-              <Edit3 size={16} />
+              <Edit3 size={14} />
+              <span className="text-[9px] font-black uppercase tracking-widest sm:hidden">Editar</span>
             </button>
-            <div className={`flex items-center gap-1 text-esmeralda bg-esmeralda/10 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest transition-colors`}>
-              <div className={`w-1.5 h-1.5 bg-esmeralda rounded-full ${locationStatus === 'fetching' ? 'animate-ping' : 'animate-pulse'}`} />
-              {locationStatus === 'fetching' ? 'Buscando...' : 'Ativo'}
-            </div>
           </div>
         </div>
 

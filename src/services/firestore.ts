@@ -114,7 +114,7 @@ export async function grantProAccessByEmail(email: string, duration: '7days' | '
     };
 
     if (duration === 'lifetime') {
-      updateData.proExpirationDate = undefined;
+      updateData.proExpirationDate = null;
     } else {
       const expirationDate = new Date();
       if (duration === '7days') {
@@ -152,7 +152,7 @@ export async function grantProAccessByEmail(email: string, duration: '7days' | '
   }
 }
 
-export async function checkPendingProGrant(email: string): Promise<{ isPro: boolean, proExpirationDate?: string } | null> {
+export async function checkPendingProGrant(email: string): Promise<{ isPro: boolean, proExpirationDate: string | null } | null> {
   try {
     const docRef = doc(db, 'pending_pro_grants', email);
     const docSnap = await getDoc(docRef);

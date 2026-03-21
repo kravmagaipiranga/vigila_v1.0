@@ -38,9 +38,14 @@ const ContactsScreen: React.FC = () => {
     return unsubscribe;
   }, []);
 
-  const handleAddContact = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleAddContact = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     if (!auth.currentUser) return;
+
+    if (!name || !phone) {
+      alert('Por favor, preencha o nome e o telefone.');
+      return;
+    }
 
     try {
       await addDoc(collection(db, 'contacts'), {
@@ -58,6 +63,36 @@ const ContactsScreen: React.FC = () => {
       setType('Polícia');
     } catch (err) {
       handleFirestoreError(err, OperationType.CREATE, 'contacts');
+    }
+  };
+
+  const handleImportContacts = async () => {
+    try {
+      // Check if Contact Picker API is supported
+      const supported = 'contacts' in navigator && 'ContactsManager' in window;
+      
+      if (!supported) {
+        alert('A importação de contatos não é suportada neste navegador. Por favor, insira manualmente.');
+        return;
+      }
+
+      const props = ['name', 'tel'];
+      const opts = { multiple: false };
+      
+      // @ts-ignore - Contact Picker API is relatively new
+      const contacts = await navigator.contacts.select(props, opts);
+      
+      if (contacts.length > 0) {
+        const contact = contacts[0];
+        if (contact.name && contact.name.length > 0) {
+          setName(contact.name[0]);
+        }
+        if (contact.tel && contact.tel.length > 0) {
+          setPhone(contact.tel[0]);
+        }
+      }
+    } catch (err) {
+      console.error('Error selecting contact:', err);
     }
   };
 
@@ -110,14 +145,87 @@ const ContactsScreen: React.FC = () => {
       <div className="space-y-4">
         <div className="flex justify-between items-center">
           <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-ouro/60">Meus Contatos</h3>
-          <button
-            onClick={() => setIsAdding(true)}
-            className="flex items-center gap-2 text-ciano bg-ciano/10 px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest hover:bg-ciano/20 transition-colors"
-          >
-            <Plus size={14} />
-            Adicionar
-          </button>
+          {!isAdding && (
+            <button
+              onClick={() => setIsAdding(true)}
+              className="flex items-center gap-2 text-ciano bg-ciano/10 px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest hover:bg-ciano/20 transition-colors"
+            >
+              <Plus size={14} />
+              Adicionar
+            </button>
+          )}
         </div>
+
+        {/* Inline Add Contact Form */}
+        <AnimatePresence>
+          {isAdding && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              className="overflow-hidden"
+            >
+              <div className="bg-ardosia border border-ouro/20 rounded-[32px] p-6 space-y-6 mb-4">
+                <div className="flex justify-between items-center">
+                  <h3 className="text-lg font-black uppercase italic tracking-tighter text-ouro">Novo Contato</h3>
+                  <button onClick={() => setIsAdding(false)} className="p-2 text-pergaminho/40 hover:text-pergaminho">
+                    <X size={20} />
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 gap-4">
+                  <button
+                    onClick={handleImportContacts}
+                    className="w-full flex items-center justify-center gap-2 bg-obsidiana border border-ouro/10 rounded-2xl py-3 text-[10px] font-black uppercase tracking-widest text-ouro hover:bg-ouro/5 transition-all"
+                  >
+                    <UserPlus size={14} />
+                    Importar do Telefone
+                  </button>
+
+                  <form onSubmit={handleAddContact} className="space-y-4">
+                    <div className="space-y-2">
+                      <label className="text-[8px] font-black uppercase tracking-widest text-ouro/60 ml-1">Nome Completo</label>
+                      <input
+                        type="text"
+                        required
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        className="w-full bg-obsidiana border border-ouro/10 rounded-2xl py-4 px-4 focus:outline-none focus:border-ouro transition-colors text-sm text-pergaminho placeholder:text-pergaminho/20"
+                        placeholder="Ex: João Silva"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[8px] font-black uppercase tracking-widest text-ouro/60 ml-1">Telefone / WhatsApp</label>
+                      <input
+                        type="tel"
+                        required
+                        value={phone}
+                        onChange={(e) => setPhone(e.target.value)}
+                        className="w-full bg-obsidiana border border-ouro/10 rounded-2xl py-4 px-4 focus:outline-none focus:border-ouro transition-colors text-sm text-pergaminho placeholder:text-pergaminho/20"
+                        placeholder="Ex: (11) 99999-9999"
+                      />
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setIsAdding(false)}
+                        className="flex-1 bg-obsidiana border border-ouro/10 text-pergaminho/40 font-black uppercase tracking-widest py-4 rounded-2xl transition-all"
+                      >
+                        Cancelar
+                      </button>
+                      <button
+                        type="submit"
+                        className="flex-[2] bg-ouro hover:opacity-90 text-obsidiana font-black uppercase tracking-widest py-4 rounded-2xl transition-all"
+                      >
+                        Salvar
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {loading ? (
           <div className="flex justify-center py-12">
@@ -175,57 +283,6 @@ const ContactsScreen: React.FC = () => {
         )}
       </div>
 
-      {/* Add Contact Modal */}
-      <AnimatePresence>
-        {isAdding && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-obsidiana/80 backdrop-blur-sm">
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              className="w-full max-w-sm bg-ardosia border border-ouro/20 rounded-[32px] p-8 space-y-6"
-            >
-              <div className="flex justify-between items-center">
-                <h3 className="text-xl font-black uppercase italic tracking-tighter text-ouro">Novo Contato</h3>
-                <button onClick={() => setIsAdding(false)} className="p-2 text-pergaminho/40 hover:text-pergaminho">
-                  <X size={24} />
-                </button>
-              </div>
-
-              <form onSubmit={handleAddContact} className="space-y-4">
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-ouro/60 ml-1">Nome Completo</label>
-                  <input
-                    type="text"
-                    required
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    className="w-full bg-obsidiana border border-ouro/10 rounded-2xl py-4 px-4 focus:outline-none focus:border-ouro transition-colors text-sm text-pergaminho placeholder:text-pergaminho/20"
-                    placeholder="Ex: João Silva"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-ouro/60 ml-1">Telefone / WhatsApp</label>
-                  <input
-                    type="tel"
-                    required
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    className="w-full bg-obsidiana border border-ouro/10 rounded-2xl py-4 px-4 focus:outline-none focus:border-ouro transition-colors text-sm text-pergaminho placeholder:text-pergaminho/20"
-                    placeholder="Ex: (11) 99999-9999"
-                  />
-                </div>
-                <button
-                  type="submit"
-                  className="w-full bg-ouro hover:opacity-90 text-obsidiana font-black uppercase tracking-widest py-4 rounded-2xl transition-all mt-4"
-                >
-                  Salvar Contato
-                </button>
-              </form>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
     </div>
   );
 };

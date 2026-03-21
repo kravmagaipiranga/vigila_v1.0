@@ -19,7 +19,7 @@ export interface UserProfile {
   createdAt: string;
   profileType?: ProfileType;
   isPro?: boolean;
-  proExpirationDate?: string;
+  proExpirationDate?: string | null;
 }
 
 export interface Contact {

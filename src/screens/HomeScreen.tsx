@@ -1,10 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../AuthContext';
-import { Shield, AlertCircle, MapPin, ChevronRight, Share2, Volume2, VolumeX, Edit3, X } from 'lucide-react';
+import { Shield, AlertCircle, MapPin, ChevronRight, Share2, Volume2, VolumeX, Edit3, X, Search, Loader2, RefreshCw } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../firebase';
 import { Contact } from '../types';
+import { searchLocation, PlaceResult } from '../services/geminiService';
 
 interface HomeProps {
   setActiveTab: (tab: string) => void;
@@ -18,6 +19,8 @@ const HomeScreen: React.FC<HomeProps> = ({ setActiveTab }) => {
   const [isAlarmActive, setIsAlarmActive] = useState(false);
   const [isManualLocationModalOpen, setIsManualLocationModalOpen] = useState(false);
   const [manualLocationInput, setManualLocationInput] = useState('');
+  const [searchResults, setSearchResults] = useState<PlaceResult[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
   
   // Audio Recording State
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -132,6 +135,27 @@ const HomeScreen: React.FC<HomeProps> = ({ setActiveTab }) => {
     };
   }, []);
 
+  const handleAutoLocation = async () => {
+    setLocationStatus('fetching');
+    try {
+      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject, {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 0
+        });
+      });
+
+      const { latitude, longitude } = position.coords;
+      setCurrentLocation(`${latitude.toFixed(4)}, ${longitude.toFixed(4)}`);
+      setLocationStatus('success');
+    } catch (error: any) {
+      console.error('Error getting location:', error);
+      setLocationStatus('error');
+      alert('Não foi possível obter sua localização automática. Por favor, tente novamente ou insira manualmente.');
+    }
+  };
+
   const handleSendAlert = async () => {
     if (!user) return;
     setSendingAlert(true);
@@ -157,7 +181,7 @@ const HomeScreen: React.FC<HomeProps> = ({ setActiveTab }) => {
         const position = await new Promise<GeolocationPosition>((resolve, reject) => {
           navigator.geolocation.getCurrentPosition(resolve, reject, {
             enableHighAccuracy: true,
-            timeout: 5000,
+            timeout: 10000,
             maximumAge: 0
           });
         });
@@ -207,6 +231,35 @@ const HomeScreen: React.FC<HomeProps> = ({ setActiveTab }) => {
     } finally {
       setSendingAlert(false);
     }
+  };
+
+  const handleManualLocationSearch = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!manualLocationInput.trim()) return;
+    
+    setIsSearching(true);
+    try {
+      const results = await searchLocation(manualLocationInput.trim());
+      setSearchResults(results);
+      if (results.length === 0) {
+        alert('Nenhum local encontrado. Tente ser mais específico.');
+      }
+    } catch (error) {
+      console.error('Error searching location:', error);
+      alert('Erro ao buscar localização.');
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  const selectLocation = (place: PlaceResult) => {
+    setCurrentLocation(`${place.location.lat.toFixed(4)}, ${place.location.lng.toFixed(4)}`);
+    // We could also store the name/address if we want to show it in the UI instead of coords
+    // For now, let's show the address if available
+    setManualLocationInput(place.address || place.name);
+    setLocationStatus('success');
+    setIsManualLocationModalOpen(false);
+    setSearchResults([]);
   };
 
   const handleManualLocationSubmit = (e: React.FormEvent) => {
@@ -273,6 +326,14 @@ const HomeScreen: React.FC<HomeProps> = ({ setActiveTab }) => {
           </div>
           <div className="flex items-center gap-2">
             <button 
+              onClick={handleAutoLocation}
+              disabled={locationStatus === 'fetching'}
+              className="p-2 bg-obsidiana text-ouro/60 rounded-xl hover:text-ouro transition-colors disabled:opacity-50"
+              title="Identificar automaticamente"
+            >
+              <RefreshCw size={16} className={locationStatus === 'fetching' ? 'animate-spin' : ''} />
+            </button>
+            <button 
               onClick={() => setIsManualLocationModalOpen(true)}
               className="p-2 bg-obsidiana text-ouro/60 rounded-xl hover:text-ouro transition-colors"
               title="Definir manualmente"
@@ -301,20 +362,47 @@ const HomeScreen: React.FC<HomeProps> = ({ setActiveTab }) => {
                     <X size={16} />
                   </button>
                 </div>
-                <form onSubmit={handleManualLocationSubmit} className="space-y-3">
-                  <input
-                    type="text"
-                    placeholder="Ex: Av. Paulista, 1000"
-                    value={manualLocationInput}
-                    onChange={(e) => setManualLocationInput(e.target.value)}
-                    className="w-full bg-ardosia border border-ouro/10 rounded-xl py-3 px-4 focus:outline-none focus:border-ouro transition-colors text-xs text-pergaminho placeholder:text-pergaminho/20"
-                    autoFocus
-                  />
+                <form onSubmit={handleManualLocationSearch} className="space-y-3">
+                  <div className="relative">
+                    <input
+                      type="text"
+                      placeholder="Ex: Av. Paulista, 1000"
+                      value={manualLocationInput}
+                      onChange={(e) => setManualLocationInput(e.target.value)}
+                      className="w-full bg-ardosia border border-ouro/10 rounded-xl py-3 px-4 pr-12 focus:outline-none focus:border-ouro transition-colors text-xs text-pergaminho placeholder:text-pergaminho/20"
+                      autoFocus
+                    />
+                    <button
+                      type="submit"
+                      disabled={isSearching}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-ouro/60 hover:text-ouro disabled:opacity-50"
+                    >
+                      {isSearching ? <Loader2 size={16} className="animate-spin" /> : <Search size={16} />}
+                    </button>
+                  </div>
+                  
+                  {searchResults.length > 0 && (
+                    <div className="space-y-2 mt-4 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
+                      {searchResults.map((result, idx) => (
+                        <button
+                          key={idx}
+                          type="button"
+                          onClick={() => selectLocation(result)}
+                          className="w-full text-left p-3 rounded-xl bg-ardosia border border-ouro/5 hover:border-ouro/30 transition-all group"
+                        >
+                          <h4 className="text-[10px] font-black uppercase italic text-ouro group-hover:text-ouro/100">{result.name}</h4>
+                          <p className="text-[9px] text-pergaminho/40 truncate">{result.address}</p>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
                   <button
-                    type="submit"
-                    className="w-full bg-ouro hover:opacity-90 text-obsidiana font-black uppercase tracking-widest py-3 rounded-xl text-[10px] transition-all"
+                    type="button"
+                    onClick={handleManualLocationSubmit}
+                    className="w-full bg-ouro/10 hover:bg-ouro/20 text-ouro font-black uppercase tracking-widest py-3 rounded-xl text-[10px] transition-all"
                   >
-                    Confirmar
+                    Usar Texto Como Está
                   </button>
                 </form>
               </div>

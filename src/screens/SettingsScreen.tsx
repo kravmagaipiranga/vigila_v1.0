@@ -74,15 +74,33 @@ const SettingsScreen: React.FC = () => {
     setIsProfileDropdownOpen(false);
   };
 
-  const handlePurchasePro = async () => {
+  const handlePurchasePro = async (plan: '7days' | '1year' | 'lifetime' = 'lifetime') => {
     if (!user) return;
     setIsSaving(true);
     try {
-      await updateUserProfile(user.uid, { isPro: true });
-      alert('Parabéns! Você agora é VIGILA PRO. Acesso vitalício liberado.');
+      const response = await fetch('/api/checkout', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId: user.uid,
+          email: user.email,
+          plan
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Erro ao criar preferência de pagamento');
+      }
+
+      const { init_point } = await response.json();
+      
+      // Redirect to Mercado Pago
+      window.location.href = init_point;
     } catch (err) {
       console.error("Error purchasing pro:", err);
-      alert("Erro ao processar a compra.");
+      alert("Erro ao processar a compra. Tente novamente mais tarde.");
     } finally {
       setIsSaving(false);
     }
@@ -163,21 +181,63 @@ const SettingsScreen: React.FC = () => {
           <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform">
             <Star size={80} className="text-ciano" />
           </div>
-          <div className="relative z-10 space-y-4">
+          <div className="relative z-10 space-y-6">
             <div className="flex items-center gap-2">
-              <div className="bg-ciano text-obsidiana px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest">Compra Única</div>
+              <div className="bg-ciano text-obsidiana px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest">Planos Flexíveis</div>
               <h3 className="text-lg font-black italic tracking-tighter text-pergaminho uppercase">VIGILA PRO</h3>
             </div>
-            <p className="text-pergaminho/60 text-xs font-medium max-w-[200px]">
-              Acesso vitalício: Alertas em tempo real, gravação estendida e escolha de perfis.
+            
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="bg-obsidiana/40 border border-ciano/20 rounded-2xl p-4 flex flex-col justify-between gap-4">
+                <div>
+                  <h4 className="text-[10px] font-black uppercase tracking-widest text-ciano">7 Dias</h4>
+                  <p className="text-xl font-black text-pergaminho italic tracking-tighter">R$ 9,90</p>
+                  <p className="text-[8px] text-pergaminho/40 font-bold uppercase mt-1">Acesso temporário</p>
+                </div>
+                <button 
+                  onClick={() => handlePurchasePro('7days')}
+                  disabled={isSaving}
+                  className="w-full bg-ciano/10 border border-ciano/30 text-ciano py-2 rounded-xl text-[8px] font-black uppercase tracking-widest hover:bg-ciano hover:text-obsidiana transition-all disabled:opacity-50"
+                >
+                  Selecionar
+                </button>
+              </div>
+
+              <div className="bg-obsidiana/40 border border-ouro/40 rounded-2xl p-4 flex flex-col justify-between gap-4 relative">
+                <div className="absolute -top-2 -right-2 bg-ouro text-obsidiana px-2 py-0.5 rounded text-[6px] font-black uppercase tracking-widest">Popular</div>
+                <div>
+                  <h4 className="text-[10px] font-black uppercase tracking-widest text-ouro">1 Ano</h4>
+                  <p className="text-xl font-black text-pergaminho italic tracking-tighter">R$ 29,90</p>
+                  <p className="text-[8px] text-pergaminho/40 font-bold uppercase mt-1">Custo-benefício</p>
+                </div>
+                <button 
+                  onClick={() => handlePurchasePro('1year')}
+                  disabled={isSaving}
+                  className="w-full bg-ouro text-obsidiana py-2 rounded-xl text-[8px] font-black uppercase tracking-widest hover:opacity-90 transition-all disabled:opacity-50"
+                >
+                  Selecionar
+                </button>
+              </div>
+
+              <div className="bg-obsidiana/40 border border-ciano/20 rounded-2xl p-4 flex flex-col justify-between gap-4">
+                <div>
+                  <h4 className="text-[10px] font-black uppercase tracking-widest text-ciano">Vitalício</h4>
+                  <p className="text-xl font-black text-pergaminho italic tracking-tighter">R$ 49,90</p>
+                  <p className="text-[8px] text-pergaminho/40 font-bold uppercase mt-1">Para sempre</p>
+                </div>
+                <button 
+                  onClick={() => handlePurchasePro('lifetime')}
+                  disabled={isSaving}
+                  className="w-full bg-ciano/10 border border-ciano/30 text-ciano py-2 rounded-xl text-[8px] font-black uppercase tracking-widest hover:bg-ciano hover:text-obsidiana transition-all disabled:opacity-50"
+                >
+                  Selecionar
+                </button>
+              </div>
+            </div>
+
+            <p className="text-pergaminho/40 text-[8px] font-bold uppercase tracking-widest text-center">
+              Pagamento seguro via Mercado Pago
             </p>
-            <button 
-              onClick={handlePurchasePro}
-              disabled={isSaving}
-              className="bg-ciano text-obsidiana px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest hover:opacity-90 transition-opacity shadow-lg shadow-ciano/20 disabled:opacity-50"
-            >
-              Comprar Agora
-            </button>
           </div>
         </div>
       )}

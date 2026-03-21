@@ -116,8 +116,11 @@ app.post('/api/webhook/mercadopago', async (req, res) => {
         if (userId) {
           const userRef = db.collection('users').doc(userId);
           
+          const planType = plan === '7days' ? '7 dias' : (plan === '1year' ? '1 ano' : 'vitalício');
+          
           const updateData: any = {
             isPro: true,
+            planType: planType,
             updatedAt: FieldValue.serverTimestamp()
           };
 

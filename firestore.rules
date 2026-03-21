@@ -75,7 +75,7 @@ service cloud.firestore {
 
     function isAdmin() {
       return isAuthenticated() &&
-        (request.auth.token.email == "kravmagaipiranga@gmail.com" ||
+        ((request.auth.token.email == "kravmagaipiranga@gmail.com" && request.auth.token.email_verified == true) ||
          (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
           get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'));
     }
@@ -183,7 +183,16 @@ service cloud.firestore {
       allow read: if true;
       
       // Only admins can write guides
-      allow write: if isAdmin() && isValidGuide(request.resource.data);
+      allow create, update: if isAdmin() && isValidGuide(request.resource.data);
+      allow delete: if isAdmin();
+    }
+
+    match /settings/{settingId} {
+      // Settings are public read for authenticated users
+      allow read: if isAuthenticated();
+      
+      // Only admins can write settings
+      allow write: if isAdmin();
     }
 
     match /pending_pro_grants/{email} {

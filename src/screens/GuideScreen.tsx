@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { collection, query, orderBy, onSnapshot, where } from 'firebase/firestore';
 import { db } from '../firebase';
 import { GuideContent, Section, ProfileType } from '../types';
+import { seedGuides } from '../services/firestore';
 import { ChevronDown, ChevronUp, BookOpen, Search, Info } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import ReactMarkdown from 'react-markdown';
@@ -13,31 +14,55 @@ const GuideScreen: React.FC = () => {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedTheme, setSelectedTheme] = useState('Todos os Temas');
+  const [isThemeOpen, setIsThemeOpen] = useState(false);
+
+  const themes = [
+    "Todos os Temas",
+    "Fundamentos da Preparação",
+    "Kits de Emergência",
+    "Inundações e Enchentes",
+    "Incêndios Florestais e Urbanos",
+    "Terremotos e Desabamentos",
+    "Segurança no Campus",
+    "Ataques Cibernéticos",
+    "Emergências Químicas",
+    "Segurança Escolar",
+    "Protocolos de Segurança"
+  ];
 
   useEffect(() => {
     const currentProfile = profile?.profileType || ProfileType.GENERIC;
     
-    // We want to show generic guides AND profile-specific guides
+    // Fetch all guides and filter in memory to avoid index requirements for 'in' + 'orderBy'
     const q = query(
       collection(db, 'guides'), 
-      where('profile', 'in', [ProfileType.GENERIC, currentProfile]),
       orderBy('order', 'asc')
     );
     
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as GuideContent));
-      // Sort manually because 'in' query might not preserve order across different values perfectly if we want specific ordering
-      const sortedData = data.sort((a, b) => a.order - b.order);
-      setGuides(sortedData);
+      // Filter in memory
+      const filteredData = data.filter(g => 
+        !g.profile || g.profile === ProfileType.GENERIC || g.profile === currentProfile
+      );
+      setGuides(filteredData);
+      setLoading(false);
+    }, (error) => {
+      console.error("Error fetching guides:", error);
       setLoading(false);
     });
     return unsubscribe;
   }, [profile?.profileType]);
 
-  const filteredGuides = guides.filter(g => 
-    g.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    g.content.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredGuides = guides.filter(g => {
+    const matchesSearch = g.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         g.content.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesTheme = selectedTheme === 'Todos os Temas' || 
+                        g.title.toLowerCase().includes(selectedTheme.toLowerCase()) ||
+                        g.content.toLowerCase().includes(selectedTheme.toLowerCase());
+    return matchesSearch && matchesTheme;
+  });
 
   const sections: Section[] = ['Planejamento', 'Prevenção', 'Análise'];
 
@@ -49,15 +74,59 @@ const GuideScreen: React.FC = () => {
       </div>
 
       {/* Search */}
-      <div className="relative group">
-        <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-ouro/40 group-focus-within:text-ouro transition-colors" size={18} />
-        <input
-          type="text"
-          placeholder="Buscar dicas de segurança..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full bg-ardosia border border-ouro/10 rounded-2xl py-5 pl-14 pr-6 focus:outline-none focus:border-ouro/40 transition-colors text-sm text-pergaminho placeholder:text-pergaminho/20"
-        />
+      <div className="space-y-4">
+        <div className="relative group">
+          <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-ouro/40 group-focus-within:text-ouro transition-colors" size={18} />
+          <input
+            type="text"
+            placeholder="Buscar dicas de segurança..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full bg-ardosia border border-ouro/10 rounded-2xl py-5 pl-14 pr-6 focus:outline-none focus:border-ouro/40 transition-colors text-sm text-pergaminho placeholder:text-pergaminho/20"
+          />
+        </div>
+
+        {/* Theme Dropdown */}
+        <div className="relative">
+          <button
+            onClick={() => setIsThemeOpen(!isThemeOpen)}
+            className="w-full bg-ardosia border border-ouro/10 rounded-2xl py-4 px-6 flex items-center justify-between text-sm font-black italic uppercase tracking-tight text-pergaminho hover:bg-ouro/5 transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <Info size={16} className="text-ouro/40" />
+              <span>{selectedTheme}</span>
+            </div>
+            <ChevronDown size={18} className={`text-ouro transition-transform ${isThemeOpen ? 'rotate-180' : ''}`} />
+          </button>
+
+          <AnimatePresence>
+            {isThemeOpen && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="absolute z-50 top-full left-0 right-0 mt-2 bg-ardosia border border-ouro/20 rounded-2xl overflow-hidden shadow-2xl"
+              >
+                <div className="max-h-60 overflow-y-auto py-2">
+                  {themes.map((theme) => (
+                    <button
+                      key={theme}
+                      onClick={() => {
+                        setSelectedTheme(theme);
+                        setIsThemeOpen(false);
+                      }}
+                      className={`w-full px-6 py-3 text-left text-[10px] font-black uppercase tracking-widest transition-colors ${
+                        selectedTheme === theme ? 'bg-ouro text-obsidiana' : 'text-pergaminho/60 hover:bg-ouro/10'
+                      }`}
+                    >
+                      {theme}
+                    </button>
+                  ))}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
       </div>
 
       {loading ? (
@@ -73,6 +142,28 @@ const GuideScreen: React.FC = () => {
               />
             </div>
           </div>
+        </div>
+      ) : filteredGuides.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-20 space-y-6 text-center">
+          <div className="w-20 h-20 bg-ouro/5 rounded-full flex items-center justify-center text-ouro/20">
+            <BookOpen size={40} />
+          </div>
+          <div className="space-y-2">
+            <p className="text-pergaminho/40 text-sm font-bold uppercase tracking-widest">Nenhum guia encontrado</p>
+            <p className="text-pergaminho/20 text-[10px] max-w-[200px] mx-auto uppercase tracking-tighter">
+              Tente buscar por outro termo ou atualize o banco de dados.
+            </p>
+          </div>
+          <button 
+            onClick={async () => {
+              setLoading(true);
+              await seedGuides(true);
+              setLoading(false);
+            }}
+            className="bg-ouro/10 border border-ouro/20 text-ouro text-[10px] font-black uppercase tracking-[0.2em] px-6 py-3 rounded-xl hover:bg-ouro/20 transition-all"
+          >
+            Sincronizar Conteúdo
+          </button>
         </div>
       ) : (
         <div className="space-y-10">

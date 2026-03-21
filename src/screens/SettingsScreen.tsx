@@ -197,6 +197,30 @@ const SettingsScreen: React.FC = () => {
     }
   };
 
+  const getRemainingTime = () => {
+    if (!profile?.proExpirationDate) return null;
+    const now = new Date();
+    const expiry = new Date(profile.proExpirationDate);
+    const diffTime = expiry.getTime() - now.getTime();
+    if (diffTime <= 0) return null;
+
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    if (diffDays <= 7) {
+      return `${diffDays} ${diffDays === 1 ? 'dia' : 'dias'}`;
+    } else {
+      const diffMonths = Math.floor(diffDays / 30);
+      if (diffMonths >= 1) {
+        const remainingDays = diffDays % 30;
+        return `${diffMonths} ${diffMonths === 1 ? 'mês' : 'meses'}${remainingDays > 0 ? ` e ${remainingDays} d` : ''}`;
+      }
+      return `${diffDays} dias`;
+    }
+  };
+
+  const currentPlan = isAdmin ? 'Vitalício (Admin)' : (profile?.planType || 'Gratuito');
+  const remainingTime = getRemainingTime();
+
   return (
     <div className="space-y-8">
       <div className="space-y-1">
@@ -276,22 +300,45 @@ const SettingsScreen: React.FC = () => {
         <div className="absolute top-0 right-0 p-6 opacity-5">
           <ShieldCheck size={120} className="text-ouro" />
         </div>
-        <div className="flex items-center gap-6 relative z-10">
-          <div className="w-20 h-20 bg-obsidiana rounded-3xl border border-ouro/20 flex items-center justify-center overflow-hidden">
-            {user?.photoURL ? (
-              <img src={user.photoURL} alt="Profile" className="w-full h-full object-cover" />
-            ) : (
-              <User size={40} className="text-ouro/40" />
-            )}
-          </div>
-          <div className="space-y-1">
-            <h3 className="text-xl font-black tracking-tighter italic uppercase leading-none text-ouro">
-              {user?.displayName || 'Usuário Vigila'}
-            </h3>
-            <p className="text-pergaminho/40 text-xs font-medium">{user?.email}</p>
-            <div className="inline-flex items-center gap-1 bg-ouro/10 text-ouro px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest mt-2">
-              {profile?.profileType || 'Perfil Genérico'}
+        <div className="flex flex-col gap-6 relative z-10">
+          <div className="flex items-center gap-6">
+            <div className="w-20 h-20 bg-obsidiana rounded-3xl border border-ouro/20 flex items-center justify-center overflow-hidden">
+              {user?.photoURL ? (
+                <img src={user.photoURL} alt="Profile" className="w-full h-full object-cover" />
+              ) : (
+                <User size={40} className="text-ouro/40" />
+              )}
             </div>
+            <div className="space-y-1">
+              <h3 className="text-xl font-black tracking-tighter italic uppercase leading-none text-ouro">
+                {user?.displayName || 'Usuário Vigila'}
+              </h3>
+              <p className="text-pergaminho/40 text-xs font-medium">{user?.email}</p>
+              <div className="inline-flex items-center gap-1 bg-ouro/10 text-ouro px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest mt-2">
+                {profile?.profileType || 'Perfil Genérico'}
+              </div>
+            </div>
+          </div>
+
+          {/* Plan Info */}
+          <div className="pt-6 border-t border-ouro/10 flex items-center justify-between">
+            <div className="space-y-1">
+              <p className="text-[8px] font-black uppercase tracking-widest text-pergaminho/40">Plano Atual</p>
+              <div className="flex items-center gap-2">
+                <span className={`text-xs font-black italic uppercase tracking-tighter ${isPro ? 'text-ciano' : 'text-pergaminho'}`}>
+                  {currentPlan}
+                </span>
+                {isPro && <ShieldCheck size={12} className="text-ciano" />}
+              </div>
+            </div>
+            {remainingTime && (
+              <div className="text-right space-y-1">
+                <p className="text-[8px] font-black uppercase tracking-widest text-pergaminho/40">Tempo Restante</p>
+                <p className="text-xs font-black italic uppercase tracking-tighter text-ouro">
+                  {remainingTime}
+                </p>
+              </div>
+            )}
           </div>
         </div>
       </div>

@@ -121,14 +121,12 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab }) =>
               </motion.button>
             )}
           </AnimatePresence>
-          {!showBackButton && (
-            <img 
-              src="https://raw.githubusercontent.com/kravmagaipiranga/vigila/5913bbe85976c4203320be5cf9ec67c3613c752e/Vigila.png" 
-              alt="VIGILA" 
-              className="h-12 w-auto object-contain" 
-              referrerPolicy="no-referrer"
-            />
-          )}
+          <img 
+            src="https://raw.githubusercontent.com/kravmagaipiranga/vigila/5913bbe85976c4203320be5cf9ec67c3613c752e/Vigila.png" 
+            alt="VIGILA" 
+            className="h-12 w-auto object-contain" 
+            referrerPolicy="no-referrer"
+          />
         </div>
 
         <div className="flex items-center gap-2 relative">

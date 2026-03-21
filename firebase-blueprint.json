@@ -12,6 +12,7 @@
         "createdAt": { "type": "string", "format": "date-time" },
         "isPro": { "type": "boolean" },
         "proExpirationDate": { "type": "string", "format": "date-time" },
+        "planType": { "type": "string", "enum": ["gratuito", "7 dias", "1 ano", "vitalício"] },
         "profileType": { "type": "string", "enum": ["Perfil Genérico", "Agente de Segurança", "Professor", "Voluntário em ONG", "Profissional da Saúde", "Turista", "Figura Pública"] }
       },
       "required": ["uid", "email"]
@@ -68,6 +69,7 @@
       "properties": {
         "email": { "type": "string" },
         "duration": { "type": "string", "enum": ["7days", "1year", "lifetime"] },
+        "planType": { "type": "string", "enum": ["7 dias", "1 ano", "vitalício"] },
         "proExpirationDate": { "type": "string", "format": "date-time" },
         "grantedAt": { "type": "string", "format": "date-time" }
       },
@@ -94,6 +96,10 @@
     "/pending_pro_grants/{email}": {
       "schema": "PendingProGrant",
       "description": "Pending Pro access grants"
+    },
+    "/settings/{settingId}": {
+      "schema": "object",
+      "description": "Application settings and versioning"
     }
   }
 }

@@ -20,6 +20,7 @@ export interface UserProfile {
   profileType?: ProfileType;
   isPro?: boolean;
   proExpirationDate?: string | null;
+  planType?: 'gratuito' | '7 dias' | '1 ano' | 'vitalício';
 }
 
 export interface Contact {

@@ -52,7 +52,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           createdAt: new Date().toISOString(),
           profileType: ProfileType.GENERIC,
           isPro: pendingGrant?.isPro || false,
-          proExpirationDate: pendingGrant?.proExpirationDate || null
+          proExpirationDate: pendingGrant?.proExpirationDate || null,
+          planType: pendingGrant?.planType || 'gratuito'
         };
         
         // Save to Firestore immediately

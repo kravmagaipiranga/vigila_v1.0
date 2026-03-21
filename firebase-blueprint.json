@@ -1,0 +1,81 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile information",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "displayName": { "type": "string" },
+        "email": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "profileType": { "type": "string", "enum": ["Perfil Genérico", "Agente de Segurança", "Professor", "Voluntário em ONG", "Profissional da Saúde", "Turista", "Figura Pública"] }
+      },
+      "required": ["uid", "email"]
+    },
+    "Contact": {
+      "title": "Contact",
+      "description": "Emergency contact information",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "type": { "type": "string", "enum": ["Polícia", "Hospital", "Advogado", "Outro"] },
+        "name": { "type": "string" },
+        "phone": { "type": "string" },
+        "email": { "type": "string" },
+        "isOfficial": { "type": "boolean" },
+        "location": { "type": "string" }
+      },
+      "required": ["name", "phone", "type"]
+    },
+    "ChecklistItem": {
+      "title": "ChecklistItem",
+      "description": "Security checklist item",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "text": { "type": "string" },
+        "completed": { "type": "boolean" },
+        "isDefault": { "type": "boolean" },
+        "order": { "type": "integer" },
+        "profile": { "type": "string" }
+      },
+      "required": ["userId", "text", "completed"]
+    },
+    "GuideContent": {
+      "title": "GuideContent",
+      "description": "Educational security content",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "section": { "type": "string", "enum": ["Planejamento", "Prevenção", "Análise"] },
+        "title": { "type": "string" },
+        "content": { "type": "string" },
+        "order": { "type": "integer" },
+        "profile": { "type": "string" }
+      },
+      "required": ["section", "title", "content"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profile documents"
+    },
+    "/contacts/{contactId}": {
+      "schema": "Contact",
+      "description": "Emergency contacts"
+    },
+    "/checklist/{itemId}": {
+      "schema": "ChecklistItem",
+      "description": "User checklist items"
+    },
+    "/guides/{guideId}": {
+      "schema": "GuideContent",
+      "description": "Educational content"
+    }
+  }
+}

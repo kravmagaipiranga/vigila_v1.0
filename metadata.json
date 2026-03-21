@@ -1,0 +1,5 @@
+{
+  "name": "VIGILA",
+  "description": "Seu Guia de Bolso de Segurança Pessoal e Proteção",
+  "requestFramePermissions": ["geolocation", "microphone"]
+}

@@ -47,6 +47,14 @@
 //   - order: integer (optional)
 //   - profile: string (optional)
 //
+// Collection: pending_pro_grants
+// Document ID: {email}
+// Fields:
+//   - email: string (required)
+//   - duration: string (required, enum)
+//   - proExpirationDate: string (optional, ISO 8601)
+//   - grantedAt: string (required, ISO 8601)
+//
 // ===============================================================
 
 rules_version = '2';
@@ -175,6 +183,14 @@ service cloud.firestore {
       
       // Only admins can write guides
       allow write: if isAdmin() && isValidGuide(request.resource.data);
+    }
+
+    match /pending_pro_grants/{email} {
+      // Admins can manage all grants
+      allow read, write: if isAdmin();
+      
+      // Users can read and delete their own grant
+      allow read, delete: if isAuthenticated() && request.auth.token.email == email;
     }
 
     // Default deny

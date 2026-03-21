@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { auth, db } from './firebase';
-import { testConnection } from './services/firestore';
+import { testConnection, checkPendingProGrant, updateUserProfile } from './services/firestore';
 import { onSnapshot, doc } from 'firebase/firestore';
 import { UserProfile, ProfileType } from './types';
 
@@ -37,20 +37,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     if (!user) return;
 
-    const unsubscribeProfile = onSnapshot(doc(db, 'users', user.uid), (doc) => {
-      if (doc.exists()) {
-        setProfile(doc.data() as UserProfile);
+    const unsubscribeProfile = onSnapshot(doc(db, 'users', user.uid), async (docSnapshot) => {
+      if (docSnapshot.exists()) {
+        setProfile(docSnapshot.data() as UserProfile);
       } else {
         // Initialize profile if it doesn't exist
+        const pendingGrant = user.email ? await checkPendingProGrant(user.email) : null;
+        
         const newProfile: UserProfile = {
           uid: user.uid,
           displayName: user.displayName,
           email: user.email,
           photoURL: user.photoURL,
           createdAt: new Date().toISOString(),
-          profileType: ProfileType.GENERIC
+          profileType: ProfileType.GENERIC,
+          isPro: pendingGrant?.isPro || false,
+          proExpirationDate: pendingGrant?.proExpirationDate
         };
-        setProfile(newProfile);
+        
+        // Save to Firestore immediately
+        try {
+          await updateUserProfile(user.uid, newProfile);
+          setProfile(newProfile);
+        } catch (err) {
+          console.error("Error creating user profile in Firestore:", err);
+          // Still set locally so app works
+          setProfile(newProfile);
+        }
       }
       setLoading(false);
     }, (error) => {

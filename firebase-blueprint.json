@@ -60,6 +60,18 @@
         "profile": { "type": "string" }
       },
       "required": ["section", "title", "content"]
+    },
+    "PendingProGrant": {
+      "title": "PendingProGrant",
+      "description": "Pro access grant for a user who hasn't signed up yet",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string" },
+        "duration": { "type": "string", "enum": ["7days", "1year", "lifetime"] },
+        "proExpirationDate": { "type": "string", "format": "date-time" },
+        "grantedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["email", "duration", "grantedAt"]
     }
   },
   "firestore": {
@@ -78,6 +90,10 @@
     "/guides/{guideId}": {
       "schema": "GuideContent",
       "description": "Educational content"
+    },
+    "/pending_pro_grants/{email}": {
+      "schema": "PendingProGrant",
+      "description": "Pending Pro access grants"
     }
   }
 }

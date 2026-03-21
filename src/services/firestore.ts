@@ -126,8 +126,49 @@ export async function grantProAccessByEmail(email: string, duration: '7days' | '
     }
     
     await updateDoc(userDoc.ref, updateData);
-  } catch (err) {
+  } catch (err: any) {
+    if (err.message === 'Usuário não encontrado com este e-mail.') {
+      // If user not found, create a pending grant
+      try {
+        const expirationDate = duration === 'lifetime' ? null : (() => {
+          const d = new Date();
+          if (duration === '7days') d.setDate(d.getDate() + 7);
+          else if (duration === '1year') d.setFullYear(d.getFullYear() + 1);
+          return d.toISOString();
+        })();
+
+        await setDoc(doc(db, 'pending_pro_grants', email), {
+          email,
+          duration,
+          proExpirationDate: expirationDate,
+          grantedAt: new Date().toISOString()
+        });
+        return; // Success
+      } catch (pendingErr) {
+        handleFirestoreError(pendingErr, OperationType.WRITE, `pending_pro_grants/${email}`);
+      }
+    }
     handleFirestoreError(err, OperationType.UPDATE, `users_by_email/${email}`);
+  }
+}
+
+export async function checkPendingProGrant(email: string): Promise<{ isPro: boolean, proExpirationDate?: string } | null> {
+  try {
+    const docRef = doc(db, 'pending_pro_grants', email);
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists()) {
+      const data = docSnap.data();
+      // Delete the pending grant after retrieving it
+      await deleteDoc(docRef);
+      return {
+        isPro: true,
+        proExpirationDate: data.proExpirationDate
+      };
+    }
+    return null;
+  } catch (err) {
+    console.error("Error checking pending pro grant:", err);
+    return null;
   }
 }
 

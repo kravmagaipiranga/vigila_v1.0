@@ -1,8 +1,9 @@
 {
-  apiKey: "AIzaSyCvPi9vs8Njwf8j7Y44T8UTUW33ISUMmvM",
-  authDomain: "studio-3381179421-3a9fc.firebaseapp.com",
-  projectId: "studio-3381179421-3a9fc",
-  storageBucket: "studio-3381179421-3a9fc.firebasestorage.app",
-  messagingSenderId: "330807720565",
-  appId: "1:330807720565:web:fee5384308de786a96d63c"
-};
+  "apiKey": "AIzaSyCvPi9vs8Njwf8j7Y44T8UTUW33ISUMmvM",
+  "authDomain": "studio-3381179421-3a9fc.firebaseapp.com",
+  "projectId": "studio-3381179421-3a9fc",
+  "storageBucket": "studio-3381179421-3a9fc.firebasestorage.app",
+  "messagingSenderId": "330807720565",
+  "appId": "1:330807720565:web:fee5384308de786a96d63c",
+  "firestoreDatabaseId": ""
+}

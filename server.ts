@@ -5,7 +5,8 @@ import { fileURLToPath } from 'url';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import { MercadoPagoConfig, Preference, Payment } from 'mercadopago';
-import admin from 'firebase-admin';
+import { initializeApp, getApp, getApps } from 'firebase-admin/app';
+import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 import fs from 'fs';
 
 dotenv.config();
@@ -17,11 +18,13 @@ const __dirname = path.dirname(__filename);
 const firebaseConfigPath = path.join(process.cwd(), 'firebase-applet-config.json');
 const firebaseConfig = JSON.parse(fs.readFileSync(firebaseConfigPath, 'utf8'));
 
-admin.initializeApp({
-  projectId: firebaseConfig.projectId,
-});
+const adminApp = getApps().length === 0 
+  ? initializeApp({ projectId: firebaseConfig.projectId })
+  : getApp();
 
-const db = admin.firestore(firebaseConfig.firestoreDatabaseId);
+const db = firebaseConfig.firestoreDatabaseId 
+  ? getFirestore(adminApp, firebaseConfig.firestoreDatabaseId)
+  : getFirestore(adminApp);
 
 const app = express();
 const PORT = 3000;
@@ -115,7 +118,7 @@ app.post('/api/webhook/mercadopago', async (req, res) => {
           
           const updateData: any = {
             isPro: true,
-            updatedAt: admin.firestore.FieldValue.serverTimestamp()
+            updatedAt: FieldValue.serverTimestamp()
           };
 
           if (plan !== 'lifetime') {

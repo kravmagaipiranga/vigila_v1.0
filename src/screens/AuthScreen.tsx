@@ -109,8 +109,17 @@ const AuthScreen: React.FC = () => {
             disabled={loading}
             className="w-full bg-ouro hover:opacity-90 text-obsidiana font-black uppercase tracking-[0.2em] py-5 rounded-2xl transition-all flex items-center justify-center gap-3 group shadow-xl shadow-ouro/10"
           >
-            {loading ? 'Processando...' : (isLogin ? 'Acessar Sistema' : 'Criar Credenciais')}
-            <ArrowRight size={18} strokeWidth={3} className="group-hover:translate-x-1 transition-transform" />
+            {loading ? (
+              <>
+                <div className="w-5 h-5 border-2 border-obsidiana/20 border-t-obsidiana rounded-full animate-spin" />
+                <span>Processando...</span>
+              </>
+            ) : (
+              <>
+                {isLogin ? 'Acessar Sistema' : 'Criar Credenciais'}
+                <ArrowRight size={18} strokeWidth={3} className="group-hover:translate-x-1 transition-transform" />
+              </>
+            )}
           </button>
         </form>
 

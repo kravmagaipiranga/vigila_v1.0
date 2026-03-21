@@ -62,7 +62,17 @@ const GuideScreen: React.FC = () => {
 
       {loading ? (
         <div className="flex justify-center py-12">
-          <div className="w-8 h-8 border-2 border-ouro/20 border-t-ouro rounded-full animate-spin" />
+          <div className="relative">
+            <div className="w-12 h-12 border-2 border-ouro/20 border-t-ouro rounded-full animate-spin" />
+            <div className="absolute inset-0 flex items-center justify-center">
+              <img 
+                src="https://raw.githubusercontent.com/kravmagaipiranga/vigila/5913bbe85976c4203320be5cf9ec67c3613c752e/icon.png" 
+                alt="VIGILA" 
+                className="w-5 h-5 object-contain"
+                referrerPolicy="no-referrer"
+              />
+            </div>
+          </div>
         </div>
       ) : (
         <div className="space-y-10">

@@ -29,8 +29,13 @@ const LoadingScreen = () => (
         className="absolute inset-0 bg-ouro/20 rounded-full blur-2xl"
       />
       <div className="relative w-24 h-24 border-2 border-ouro/10 border-t-ouro rounded-full animate-spin" />
-      <div className="absolute inset-0 flex items-center justify-center text-ouro">
-        <Shield size={32} strokeWidth={1.5} />
+      <div className="absolute inset-0 flex items-center justify-center">
+        <img 
+          src="https://raw.githubusercontent.com/kravmagaipiranga/vigila/5913bbe85976c4203320be5cf9ec67c3613c752e/icon.png" 
+          alt="VIGILA" 
+          className="w-10 h-10 object-contain"
+          referrerPolicy="no-referrer"
+        />
       </div>
     </div>
     <div className="text-center space-y-2">

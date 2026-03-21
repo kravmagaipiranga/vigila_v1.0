@@ -1,55 +1,185 @@
+// ===============================================================
+// Assumed Data Model
+// ===============================================================
+//
+// Collection: users
+// Document ID: {userId}
+// Fields:
+//   - uid: string (required)
+//   - displayName: string (optional)
+//   - email: string (required)
+//   - photoURL: string (optional)
+//   - createdAt: string (optional, ISO 8601)
+//   - isPro: boolean (optional)
+//   - proExpirationDate: string (optional, ISO 8601)
+//   - profileType: string (optional, enum)
+//
+// Collection: contacts
+// Document ID: {contactId}
+// Fields:
+//   - id: string (optional)
+//   - userId: string (optional)
+//   - type: string (required, enum)
+//   - name: string (required)
+//   - phone: string (required)
+//   - email: string (optional)
+//   - isOfficial: boolean (optional)
+//   - location: string (optional)
+//
+// Collection: checklist
+// Document ID: {itemId}
+// Fields:
+//   - id: string (optional)
+//   - userId: string (required)
+//   - text: string (required)
+//   - completed: boolean (required)
+//   - isDefault: boolean (optional)
+//   - order: integer (optional)
+//   - profile: string (optional)
+//
+// Collection: guides
+// Document ID: {guideId}
+// Fields:
+//   - id: string (optional)
+//   - section: string (required, enum)
+//   - title: string (required)
+//   - content: string (required)
+//   - order: integer (optional)
+//   - profile: string (optional)
+//
+// ===============================================================
+
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+
+    // ===============================================================
     // Helper Functions
+    // ===============================================================
+
     function isAuthenticated() {
       return request.auth != null;
     }
-    
+
     function isOwner(userId) {
       return isAuthenticated() && request.auth.uid == userId;
     }
-    
-    function isDocOwner() {
-      return isAuthenticated() && request.auth.uid == resource.data.userId;
-    }
-    
-    function isRequestOwner() {
-      return isAuthenticated() && request.auth.uid == request.resource.data.userId;
-    }
 
     function isAdmin() {
-      return isAuthenticated() && 
-        (request.auth.token.email == "kravmagaipiranga@gmail.com" && request.auth.token.email_verified == true);
+      return isAuthenticated() &&
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+          (request.auth.token.email == "kravmagaipiranga@gmail.com" && request.auth.token.email_verified == true));
     }
 
-    // User Profiles
+    function isValidEmail(email) {
+      return email is string && email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
+    }
+
+    function isValidDateString(dateStr) {
+      return dateStr is string && dateStr.matches("^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}.*Z?$");
+    }
+
+    // ===============================================================
+    // Domain Validators
+    // ===============================================================
+
+    function isValidUser(data) {
+      return data.keys().hasAll(['uid', 'email']) &&
+             data.uid is string &&
+             isValidEmail(data.email) &&
+             (!('displayName' in data) || (data.displayName is string && data.displayName.size() < 100)) &&
+             (!('photoURL' in data) || (data.photoURL is string && data.photoURL.size() < 500)) &&
+             (!('createdAt' in data) || isValidDateString(data.createdAt)) &&
+             (!('isPro' in data) || data.isPro is bool) &&
+             (!('proExpirationDate' in data) || (data.proExpirationDate == null || isValidDateString(data.proExpirationDate))) &&
+             (!('profileType' in data) || data.profileType is string);
+    }
+
+    function isValidContact(data) {
+      return data.keys().hasAll(['name', 'phone', 'type']) &&
+             data.name is string && data.name.size() > 0 && data.name.size() < 100 &&
+             data.phone is string && data.phone.size() > 0 && data.phone.size() < 30 &&
+             data.type in ['Polícia', 'Hospital', 'Advogado', 'Outro'] &&
+             (!('email' in data) || (data.email == null || isValidEmail(data.email))) &&
+             (!('userId' in data) || (data.userId == null || data.userId is string)) &&
+             (!('isOfficial' in data) || data.isOfficial is bool) &&
+             (!('location' in data) || (data.location == null || data.location is string));
+    }
+
+    function isValidChecklistItem(data) {
+      return data.keys().hasAll(['userId', 'text', 'completed']) &&
+             data.userId is string &&
+             data.text is string && data.text.size() > 0 && data.text.size() < 500 &&
+             data.completed is bool &&
+             (!('isDefault' in data) || data.isDefault is bool) &&
+             (!('order' in data) || data.order is int) &&
+             (!('profile' in data) || data.profile is string);
+    }
+
+    function isValidGuide(data) {
+      return data.keys().hasAll(['section', 'title', 'content']) &&
+             data.section in ['Planejamento', 'Prevenção', 'Análise'] &&
+             data.title is string && data.title.size() > 0 && data.title.size() < 200 &&
+             data.content is string && data.content.size() > 0 && data.content.size() < 5000 &&
+             (!('order' in data) || data.order is int) &&
+             (!('profile' in data) || data.profile is string);
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
     match /users/{userId} {
+      // Users can only read their own profile (PII protection)
       allow read: if isOwner(userId) || isAdmin();
-      allow create: if isOwner(userId);
-      allow update: if (isOwner(userId) && request.resource.data.uid == resource.data.uid) || isAdmin();
+      
+      // Allow creation if the UID matches and the data is valid
+      // Note: role cannot be set to admin by a non-admin
+      allow create: if isOwner(userId) && isValidUser(request.resource.data) && 
+                    (!('role' in request.resource.data) || request.resource.data.role != 'admin' || isAdmin());
+      
+      // Allow updates if the owner and data is valid
+      // Role cannot be changed by non-admin
+      allow update: if (isOwner(userId) || isAdmin()) && isValidUser(request.resource.data) &&
+                    (!('role' in request.resource.data) || request.resource.data.role == resource.data.role || isAdmin());
     }
 
-    // Emergency Contacts
     match /contacts/{contactId} {
-      allow read: if isAuthenticated() && (resource.data.isOfficial == true || resource.data.userId == request.auth.uid);
-      allow create: if isAuthenticated() && (request.resource.data.isOfficial == false ? request.resource.data.userId == request.auth.uid : isAdmin());
-      allow update: if isAuthenticated() && resource.data.userId == request.auth.uid && request.resource.data.userId == request.auth.uid;
-      allow delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      // Official contacts are public, personal contacts are owner-only
+      allow read: if resource.data.isOfficial == true || (isAuthenticated() && resource.data.userId == request.auth.uid) || isAdmin();
+      
+      allow create: if isAuthenticated() && isValidContact(request.resource.data) && 
+                    (request.resource.data.userId == request.auth.uid || isAdmin());
+      
+      allow update: if isAuthenticated() && isValidContact(request.resource.data) && 
+                    (resource.data.userId == request.auth.uid || isAdmin());
+      
+      allow delete: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
     }
 
-    // Checklist Items
     match /checklist/{itemId} {
-      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
-      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
-      allow update: if isAuthenticated() && resource.data.userId == request.auth.uid && request.resource.data.userId == request.auth.uid;
-      allow delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      allow read: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
+      
+      allow create: if isAuthenticated() && isValidChecklistItem(request.resource.data) && 
+                    (request.resource.data.userId == request.auth.uid || isAdmin());
+      
+      allow update: if isAuthenticated() && isValidChecklistItem(request.resource.data) && 
+                    (resource.data.userId == request.auth.uid || isAdmin());
+      
+      allow delete: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
     }
 
-    // Guide Content (Read-only for users, Write for admins)
     match /guides/{guideId} {
-      allow read: if isAuthenticated();
-      allow write: if isAdmin();
+      // Guides are public read
+      allow read: if true;
+      
+      // Only admins can write guides
+      allow write: if isAdmin() && isValidGuide(request.resource.data);
+    }
+
+    // Default deny
+    match /{path=**} {
+      allow read, write: if false;
     }
   }
 }

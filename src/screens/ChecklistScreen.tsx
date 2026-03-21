@@ -14,6 +14,8 @@ const ChecklistScreen: React.FC = () => {
   const [newItemText, setNewItemText] = useState('');
   const [loading, setLoading] = useState(true);
 
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
+
   useEffect(() => {
     if (!auth.currentUser) return;
 
@@ -71,7 +73,6 @@ const ChecklistScreen: React.FC = () => {
 
   const handleClearAll = async () => {
     if (!auth.currentUser || items.length === 0) return;
-    if (!confirm('Tem certeza que deseja apagar todos os itens da sua lista?')) return;
     
     try {
       const batch = writeBatch(db);
@@ -79,6 +80,7 @@ const ChecklistScreen: React.FC = () => {
         batch.delete(doc(db, 'checklist', item.id));
       });
       await batch.commit();
+      setShowClearConfirm(false);
     } catch (err) {
       handleFirestoreError(err, OperationType.DELETE, 'checklist');
     }
@@ -171,16 +173,34 @@ const ChecklistScreen: React.FC = () => {
             {pendingCount} itens pendentes
           </p>
           <div className="flex items-center gap-4">
-            <button 
-              onClick={handleClearAll}
-              className="flex items-center gap-2 text-alerta/40 hover:text-alerta transition-colors text-[10px] font-black uppercase tracking-widest"
-            >
-              <Trash2 size={12} />
-              Limpar Tudo
-            </button>
+            {showClearConfirm ? (
+              <div className="flex items-center gap-2">
+                <button 
+                  onClick={handleClearAll}
+                  className="flex items-center gap-1 text-alerta font-black uppercase tracking-widest text-[10px]"
+                >
+                  Confirmar
+                </button>
+                <span className="text-pergaminho/20">|</span>
+                <button 
+                  onClick={() => setShowClearConfirm(false)}
+                  className="text-pergaminho/40 hover:text-pergaminho transition-colors text-[10px] font-black uppercase tracking-widest"
+                >
+                  Cancelar
+                </button>
+              </div>
+            ) : (
+              <button 
+                onClick={() => setShowClearConfirm(true)}
+                className="flex items-center gap-2 text-alerta/80 hover:text-alerta transition-colors text-[10px] font-black uppercase tracking-widest"
+              >
+                <Trash2 size={12} />
+                Limpar Tudo
+              </button>
+            )}
             <button 
               onClick={resetToDefault}
-              className="flex items-center gap-2 text-ouro/40 hover:text-ouro transition-colors text-[10px] font-black uppercase tracking-widest"
+              className="flex items-center gap-2 text-ouro/60 hover:text-ouro transition-colors text-[10px] font-black uppercase tracking-widest"
             >
               <RotateCcw size={12} />
               Resetar
@@ -226,7 +246,17 @@ const ChecklistScreen: React.FC = () => {
 
       {loading ? (
         <div className="flex justify-center py-12">
-          <div className="w-8 h-8 border-2 border-ouro/20 border-t-ouro rounded-full animate-spin" />
+          <div className="relative">
+            <div className="w-12 h-12 border-2 border-ouro/20 border-t-ouro rounded-full animate-spin" />
+            <div className="absolute inset-0 flex items-center justify-center">
+              <img 
+                src="https://raw.githubusercontent.com/kravmagaipiranga/vigila/5913bbe85976c4203320be5cf9ec67c3613c752e/icon.png" 
+                alt="VIGILA" 
+                className="w-5 h-5 object-contain"
+                referrerPolicy="no-referrer"
+              />
+            </div>
+          </div>
         </div>
       ) : (
         <div className="space-y-3">

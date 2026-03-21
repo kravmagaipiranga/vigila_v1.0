@@ -26,6 +26,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setProfile(null);
         setLoading(false);
       }
+    }, (error) => {
+      console.error('Auth state change error:', error);
+      setLoading(false);
     });
 
     return unsubscribeAuth;
@@ -49,6 +52,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         };
         setProfile(newProfile);
       }
+      setLoading(false);
+    }, (error) => {
+      console.error('Error fetching profile:', error);
       setLoading(false);
     });
 

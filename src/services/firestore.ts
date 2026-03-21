@@ -174,6 +174,7 @@ export async function checkPendingProGrant(email: string): Promise<{ isPro: bool
 
 // Data seeding for guides (only for dev/admin)
 export async function seedGuides() {
+  console.log("Iniciando semeadura de guias...");
   const guides: Omit<GuideContent, 'id'>[] = [
     // Generic
     { section: 'Planejamento', title: 'Avaliação de Risco', content: 'Identifique áreas perigosas e planeje sua rota com antecedência.', order: 1, profile: ProfileType.GENERIC },
@@ -207,37 +208,51 @@ export async function seedGuides() {
     { section: 'Planejamento', title: 'Logística de Deslocamento', content: 'Varie rotas e horários. Tenha sempre um plano de contingência para eventos públicos.', order: 2, profile: ProfileType.PUBLIC_FIGURE },
   ];
 
-  const q = query(collection(db, 'guides'));
-  const snapshot = await getDocs(q);
-  // If we have guides but maybe not all profiles, we might want to clear and re-seed or just add missing.
-  // For simplicity, if it's empty, seed. If not, we could check for specific profiles.
-  if (snapshot.empty) {
-    for (const guide of guides) {
-      await addDoc(collection(db, 'guides'), guide);
-    }
-  } else {
-    // Check if we need to add profile-specific guides if they don't exist
-    const existingProfiles = new Set(snapshot.docs.map(d => d.data().profile));
-    for (const guide of guides) {
-      if (!existingProfiles.has(guide.profile)) {
+  try {
+    const q = query(collection(db, 'guides'));
+    const snapshot = await getDocs(q);
+    
+    if (snapshot.empty) {
+      console.log("Coleção de guias vazia. Semeando...");
+      for (const guide of guides) {
         await addDoc(collection(db, 'guides'), guide);
       }
+      console.log("Semeadura de guias concluída.");
+    } else {
+      console.log("Guias já existem. Verificando perfis faltantes...");
+      const existingProfiles = new Set(snapshot.docs.map(d => d.data().profile));
+      for (const guide of guides) {
+        if (!existingProfiles.has(guide.profile)) {
+          await addDoc(collection(db, 'guides'), guide);
+        }
+      }
     }
+  } catch (err) {
+    console.error("Erro ao semear guias:", err);
   }
 }
 
 export async function seedOfficialContacts() {
+  console.log("Iniciando semeadura de contatos oficiais...");
   const officialContacts: Omit<Contact, 'id'>[] = [
     { type: 'Polícia', name: 'Polícia Militar', phone: '190', isOfficial: true, location: 'Brasil' },
     { type: 'Hospital', name: 'SAMU', phone: '192', isOfficial: true, location: 'Brasil' },
     { type: 'Polícia', name: 'Bombeiros', phone: '193', isOfficial: true, location: 'Brasil' },
   ];
 
-  const q = query(collection(db, 'contacts'), where('isOfficial', '==', true));
-  const snapshot = await getDocs(q);
-  if (snapshot.empty) {
-    for (const contact of officialContacts) {
-      await addDoc(collection(db, 'contacts'), contact);
+  try {
+    const q = query(collection(db, 'contacts'), where('isOfficial', '==', true));
+    const snapshot = await getDocs(q);
+    if (snapshot.empty) {
+      console.log("Contatos oficiais não encontrados. Semeando...");
+      for (const contact of officialContacts) {
+        await addDoc(collection(db, 'contacts'), contact);
+      }
+      console.log("Semeadura de contatos oficiais concluída.");
+    } else {
+      console.log("Contatos oficiais já existem.");
     }
+  } catch (err) {
+    console.error("Erro ao semear contatos oficiais:", err);
   }
 }

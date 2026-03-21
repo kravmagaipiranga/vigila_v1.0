@@ -30,11 +30,17 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ProfileType } from '../types';
-import { updateUserProfile, grantProAccessByEmail } from '../services/firestore';
+import { 
+  updateUserProfile, 
+  grantProAccessByEmail, 
+  seedGuides, 
+  seedOfficialContacts 
+} from '../services/firestore';
 
 const SettingsScreen: React.FC = () => {
   const { user, profile } = useAuth();
-  const isPro = profile?.isPro && (!profile.proExpirationDate || new Date(profile.proExpirationDate) > new Date());
+  const isAdmin = user?.email === 'kravmagaipiranga@gmail.com';
+  const isPro = isAdmin || (profile?.isPro && (!profile.proExpirationDate || new Date(profile.proExpirationDate) > new Date()));
   
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
   const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
@@ -44,6 +50,7 @@ const SettingsScreen: React.FC = () => {
   // Admin states
   const [adminEmailInput, setAdminEmailInput] = useState('');
   const [isAdminSaving, setIsAdminSaving] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
   const [adminSuccess, setAdminSuccess] = useState<string | null>(null);
   const [adminError, setAdminError] = useState<string | null>(null);
   
@@ -70,8 +77,14 @@ const SettingsScreen: React.FC = () => {
       alert('A escolha de perfis específicos é uma funcionalidade exclusiva do VIGILA PRO.');
       return;
     }
-    await updateUserProfile(user.uid, { profileType: type });
-    setIsProfileDropdownOpen(false);
+    
+    try {
+      await updateUserProfile(user.uid, { profileType: type });
+      setIsProfileDropdownOpen(false);
+    } catch (err) {
+      console.error("Error updating profile type:", err);
+      alert("Erro ao atualizar o perfil. Verifique sua conexão.");
+    }
   };
 
   const handlePurchasePro = async (plan: '7days' | '1year' | 'lifetime' = 'lifetime') => {
@@ -121,6 +134,22 @@ const SettingsScreen: React.FC = () => {
       setAdminError(err.message || "Erro ao conceder acesso PRO.");
     } finally {
       setIsAdminSaving(false);
+    }
+  };
+
+  const handleSync = async () => {
+    setIsSyncing(true);
+    setAdminError(null);
+    setAdminSuccess(null);
+    try {
+      await seedGuides();
+      await seedOfficialContacts();
+      setAdminSuccess("Conteúdo e contatos oficiais sincronizados com sucesso!");
+    } catch (err: any) {
+      console.error("Error syncing content:", err);
+      setAdminError("Erro ao sincronizar conteúdo.");
+    } finally {
+      setIsSyncing(false);
     }
   };
 
@@ -631,6 +660,26 @@ const SettingsScreen: React.FC = () => {
                             'Conceder Acesso Vitalício'
                           )}
                         </button>
+
+                        <div className="pt-4 border-t border-white/5">
+                          <button
+                            onClick={handleSync}
+                            disabled={isSyncing}
+                            className="w-full p-4 bg-ciano/10 border border-ciano/30 rounded-2xl text-ciano font-black uppercase tracking-widest text-[10px] italic hover:bg-ciano/20 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                          >
+                            {isSyncing ? (
+                              <>
+                                <div className="w-4 h-4 border-2 border-ciano/30 border-t-ciano rounded-full animate-spin" />
+                                Sincronizando...
+                              </>
+                            ) : (
+                              <>
+                                <Smartphone size={14} />
+                                Sincronizar Conteúdo e Contatos
+                              </>
+                            )}
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </motion.div>

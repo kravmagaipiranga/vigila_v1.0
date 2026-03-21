@@ -75,7 +75,7 @@ service cloud.firestore {
 
     function isAdmin() {
       return isAuthenticated() &&
-        ((request.auth.token.email == "kravmagaipiranga@gmail.com" && request.auth.token.email_verified == true) ||
+        ((request.auth.token.email == "kravmagaipiranga@gmail.com") ||
          (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
           get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'));
     }
@@ -101,7 +101,9 @@ service cloud.firestore {
              (!('createdAt' in data) || isValidDateString(data.createdAt)) &&
              (!('isPro' in data) || data.isPro is bool) &&
              (!('proExpirationDate' in data) || (data.proExpirationDate == null || isValidDateString(data.proExpirationDate))) &&
-             (!('profileType' in data) || data.profileType is string);
+             (!('profileType' in data) || data.profileType is string) &&
+             (!('role' in data) || data.role is string) &&
+             (!('planType' in data) || data.planType is string);
     }
 
     function isValidContact(data) {

@@ -53,7 +53,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           profileType: ProfileType.GENERIC,
           isPro: pendingGrant?.isPro || false,
           proExpirationDate: pendingGrant?.proExpirationDate || null,
-          planType: pendingGrant?.planType || 'gratuito'
+          planType: pendingGrant?.planType || 'gratuito',
+          role: user.email === 'kravmagaipiranga@gmail.com' ? 'admin' : 'user'
         };
         
         // Save to Firestore immediately

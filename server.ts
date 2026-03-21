@@ -21,13 +21,7 @@ admin.initializeApp({
   projectId: firebaseConfig.projectId,
 });
 
-const db = admin.firestore();
-if (firebaseConfig.firestoreDatabaseId) {
-  // If a specific database ID is provided, we might need to handle it.
-  // Standard admin.firestore() uses the default database.
-  // If the user is using a named database, we'd need to use the SDK that supports it.
-  // For now, let's assume default or handled by projectId.
-}
+const db = admin.firestore(firebaseConfig.firestoreDatabaseId);
 
 const app = express();
 const PORT = 3000;

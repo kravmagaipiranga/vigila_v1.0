@@ -57,7 +57,6 @@ const SettingsScreen: React.FC = () => {
   // Edit profile states
   const [editName, setEditName] = useState(user?.displayName || '');
   const [editEmail, setEditEmail] = useState(user?.email || '');
-  const [editPhoto, setEditPhoto] = useState(user?.photoURL || '');
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -160,8 +159,7 @@ const SettingsScreen: React.FC = () => {
     try {
       // Update Auth Profile
       await updateProfile(auth.currentUser, {
-        displayName: editName,
-        photoURL: editPhoto
+        displayName: editName
       });
 
       // Update Email if changed
@@ -184,8 +182,7 @@ const SettingsScreen: React.FC = () => {
       // Update Firestore
       await updateUserProfile(auth.currentUser.uid, {
         displayName: editName,
-        email: editEmail,
-        photoURL: editPhoto
+        email: editEmail
       });
 
       setIsEditProfileOpen(false);
@@ -303,11 +300,7 @@ const SettingsScreen: React.FC = () => {
         <div className="flex flex-col gap-6 relative z-10">
           <div className="flex items-center gap-6">
             <div className="w-20 h-20 bg-obsidiana rounded-3xl border border-ouro/20 flex items-center justify-center overflow-hidden">
-              {user?.photoURL ? (
-                <img src={user.photoURL} alt="Profile" className="w-full h-full object-cover" />
-              ) : (
-                <User size={40} className="text-ouro/40" />
-              )}
+              <User size={40} className="text-ouro/40" />
             </div>
             <div className="space-y-1">
               <h3 className="text-xl font-black tracking-tighter italic uppercase leading-none text-ouro">
@@ -446,23 +439,9 @@ const SettingsScreen: React.FC = () => {
                   <div className="p-6 space-y-6">
                     <div className="flex flex-col items-center gap-4">
                       <div className="w-20 h-20 bg-obsidiana rounded-3xl border border-ouro/10 flex items-center justify-center overflow-hidden">
-                        {editPhoto ? (
-                          <img src={editPhoto} alt="Preview" className="w-full h-full object-cover" />
-                        ) : (
-                          <User size={32} className="text-pergaminho/20" />
-                        )}
+                        <User size={32} className="text-pergaminho/20" />
                       </div>
                       <div className="w-full space-y-4">
-                        <div className="space-y-1">
-                          <label className="text-[8px] font-black uppercase tracking-widest text-pergaminho/20 ml-1">URL da Foto</label>
-                          <input
-                            type="text"
-                            value={editPhoto}
-                            onChange={(e) => setEditPhoto(e.target.value)}
-                            placeholder="https://exemplo.com/foto.jpg"
-                            className="w-full bg-obsidiana border border-ouro/10 rounded-xl py-3 px-4 text-xs font-bold text-pergaminho focus:outline-none focus:border-ouro transition-colors"
-                          />
-                        </div>
                         <div className="space-y-1">
                           <label className="text-[8px] font-black uppercase tracking-widest text-pergaminho/20 ml-1">Nome</label>
                           <input

@@ -27,15 +27,20 @@ export async function searchLocation(query: string): Promise<PlaceResult[]> {
       // Find JSON block in text
       const jsonMatch = text.match(/\[[\s\S]*\]/);
       if (jsonMatch) {
-        const data = JSON.parse(jsonMatch[0]);
-        return data.map((item: any) => ({
-          name: item.name,
-          address: item.address,
-          location: {
-            lat: item.lat,
-            lng: item.lng
-          }
-        }));
+        try {
+          const data = JSON.parse(jsonMatch[0]);
+          return data.map((item: any) => ({
+            name: item.name || 'Local',
+            address: item.address || '',
+            location: {
+              lat: Number(item.lat) || 0,
+              lng: Number(item.lng) || 0
+            }
+          }));
+        } catch (e) {
+          console.error("Failed to parse JSON from Gemini response:", e);
+          return [];
+        }
       }
     }
     return [];
@@ -52,6 +57,14 @@ export async function reverseGeocode(lat: number, lng: number): Promise<string> 
       contents: `Identify the CITY, STATE, and COUNTRY at coordinates ${lat}, ${lng}. Return the information in the format "City, State, Country". If any of these items are not identified, show only the ones that were (e.g., "State, Country" or just "Country"). Return ONLY this string, no extra text.`,
       config: {
         tools: [{ googleMaps: {} }],
+        toolConfig: {
+          retrievalConfig: {
+            latLng: {
+              latitude: lat,
+              longitude: lng
+            }
+          }
+        }
       }
     });
 

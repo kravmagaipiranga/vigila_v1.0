@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Home, CheckSquare, BookOpen, Phone, Settings, ChevronLeft, Menu, Bell, X, Languages } from 'lucide-react';
+import { Home, CheckSquare, BookOpen, Phone, Settings, ChevronLeft, Bell, Languages, Book } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 interface LayoutProps {
@@ -9,7 +9,6 @@ interface LayoutProps {
 }
 
 const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab }) => {
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isLanguageOpen, setIsLanguageOpen] = useState(false);
   const [currentLang, setCurrentLang] = useState('PT');
 
@@ -24,14 +23,13 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab }) =>
     { id: 'checklist', icon: CheckSquare, label: 'Checklist' },
     { id: 'guide', icon: BookOpen, label: 'Guia' },
     { id: 'contacts', icon: Phone, label: 'Contatos' },
-    { id: 'settings', icon: Settings, label: 'Ajustes' },
+    { id: 'journal', icon: Book, label: 'Diário' },
   ];
 
   const showBackButton = activeTab !== 'home' && activeTab !== 'settings';
 
   const handleTabSelect = (tabId: string) => {
     setActiveTab(tabId);
-    setIsMenuOpen(false);
   };
 
   const handleLanguageChange = (langCode: string) => {
@@ -48,68 +46,11 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab }) =>
 
   return (
     <div className="min-h-screen bg-obsidiana text-pergaminho flex flex-col max-w-md mx-auto relative overflow-y-auto shadow-2xl">
-      {/* Sidebar Menu */}
-      <AnimatePresence>
-        {isMenuOpen && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setIsMenuOpen(false)}
-              className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[60]"
-            />
-            <motion.div
-              initial={{ x: '-100%' }}
-              animate={{ x: 0 }}
-              exit={{ x: '-100%' }}
-              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className="fixed inset-y-0 left-0 w-4/5 max-w-xs bg-ardosia border-r border-ouro/20 z-[70] p-8 flex flex-col"
-            >
-              <div className="flex justify-between items-center mb-12">
-                <h2 className="text-2xl font-black italic tracking-tighter text-ouro">MENU</h2>
-                <button 
-                  onClick={() => setIsMenuOpen(false)}
-                  className="p-2 text-pergaminho/40 hover:text-ouro transition-colors"
-                >
-                  <X size={24} />
-                </button>
-              </div>
-
-              <div className="space-y-4">
-                {tabs.map((item) => {
-                  const Icon = item.icon;
-                  const isActive = activeTab === item.id;
-                  return (
-                    <button
-                      key={item.id}
-                      onClick={() => handleTabSelect(item.id)}
-                      className={`w-full p-4 rounded-2xl flex items-center gap-4 transition-all ${
-                        isActive 
-                          ? 'bg-ciano/10 border border-ciano/20 text-ciano' 
-                          : 'text-pergaminho/60 hover:bg-white/5'
-                      }`}
-                    >
-                      <Icon size={20} strokeWidth={isActive ? 2.5 : 2} />
-                      <span className="text-sm font-black uppercase tracking-widest">{item.label}</span>
-                    </button>
-                  );
-                })}
-              </div>
-
-              <div className="mt-auto pt-8 border-t border-ouro/10">
-                <p className="text-[10px] font-bold text-pergaminho/20 uppercase tracking-[0.2em]">VIGILA v1.0.0</p>
-              </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
-
       {/* Top Header */}
       <header className="px-6 py-4 flex justify-between items-center bg-ardosia/80 backdrop-blur-md sticky top-0 z-50 border-b border-ouro/20">
         <div className="flex items-center gap-3">
           <AnimatePresence mode="wait">
-            {showBackButton ? (
+            {showBackButton && (
               <motion.button
                 key="back"
                 initial={{ opacity: 0, x: -10 }}
@@ -119,17 +60,6 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab }) =>
                 className="p-2 -ml-2 text-pergaminho/60 hover:text-ouro transition-colors"
               >
                 <ChevronLeft size={24} />
-              </motion.button>
-            ) : (
-              <motion.button
-                key="menu"
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -10 }}
-                onClick={() => setIsMenuOpen(true)}
-                className="p-2 -ml-2 text-pergaminho/60 hover:text-ouro transition-colors"
-              >
-                <Menu size={24} />
               </motion.button>
             )}
           </AnimatePresence>

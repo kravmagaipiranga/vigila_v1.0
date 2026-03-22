@@ -74,6 +74,20 @@
         "grantedAt": { "type": "string", "format": "date-time" }
       },
       "required": ["email", "duration", "grantedAt"]
+    },
+    "JournalEntry": {
+      "title": "JournalEntry",
+      "description": "User journal or diary entry",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "title": { "type": "string" },
+        "content": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "title", "content", "createdAt"]
     }
   },
   "firestore": {
@@ -100,6 +114,10 @@
     "/settings/{settingId}": {
       "schema": "object",
       "description": "Application settings and versioning"
+    },
+    "/journal_entries/{entryId}": {
+      "schema": "JournalEntry",
+      "description": "User journal entries"
     }
   }
 }

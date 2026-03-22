@@ -181,7 +181,7 @@ export async function checkPendingProGrant(email: string): Promise<{ isPro: bool
 
 // Data seeding for guides (only for dev/admin)
 export async function seedGuides(force = false) {
-  const CURRENT_GUIDE_VERSION = '20260322_public_spaces_v1';
+  const CURRENT_GUIDE_VERSION = '20260322_humanitarian_v1';
   
   try {
     const versionRef = doc(db, 'settings', 'guide_version');
@@ -405,6 +405,64 @@ Mochila de 72 horas para evacuação imediata.
 * **Inventário de Recursos:** Saiba quem na comunidade possui habilidades médicas, ferramentas ou veículos pesados.`, 
         order: 11, 
         profile: ProfileType.TEACHER 
+      },
+      { 
+        section: 'Segurança', 
+        title: 'Guia Tático para Pessoal Humanitário', 
+        content: `O trabalho humanitário ocorre frequentemente em ambientes instáveis, complexos e perigosos. A segurança é uma responsabilidade compartilhada entre a organização e o indivíduo. Enquanto a organização tem o "dever de cuidado" (duty of care) de fornecer treinamento e recursos, cada funcionário é responsável por sua própria segurança e pela de seus colegas através da vigilância constante.
+
+### Princípios Fundamentais
+* **Pilares da Segurança:** Aceitação (consentimento das autoridades e comunidades), Identificação (uso claro de logotipos e sinalização), Informação (fluxo livre de dados sobre ameaças), Regulamentos de Segurança, Conduta Pessoal, Telecomunicações e Medidas de Proteção Física.
+* **Princípios de Ação:** Humanidade (aliviar o sofrimento), Imparcialidade (não discriminar), Neutralidade (não tomar partido) e Independência (operar livre de pressões).
+
+### Análise de Contexto e Gestão de Risco
+Entender o ambiente é como ter um mapa em território desconhecido. A segurança eficaz exige uma análise contínua de atores, dinâmicas de conflito e infraestrutura.
+* **Ameaça:** Qualquer perigo externo (direto, como um ataque; ou indireto, como um acidente de trânsito).
+* **Vulnerabilidade:** O grau de exposição de uma pessoa ou ativo a uma ameaça.
+* **Risco:** O produto da ameaça pela vulnerabilidade.
+* **Níveis de Alerta:** 
+  * *Código Branco:* Estado de desconexão e distração, alvo fácil para agressores.
+  * *Código Amarelo:* Estado de alerta e observação intensificada, permitindo detectar rituais de agressores e vulnerabilidades ambientais.
+
+### Preparação Pessoal e Saúde
+A prontidão individual é a primeira linha de defesa.
+* **Administrativa e Familiar:** Informe seus contatos de emergência sobre seus planos. Limpe seus perfis em redes sociais, removendo fotos ou comentários que possam violar tabus locais ou atrair a atenção de grupos armados.
+* **Equipamento:** Mantenha uma "bolsa de emergência" (grab bag) pronta, com documentos, medicamentos, água e dinheiro, pesando no máximo 10-15kg.
+* **Saúde Física e Mental:** Mantenha vacinas em dia e tome profilaxia para malária em zonas endêmicas. Siga a regra: "cozinhe, ferva, descasque ou esqueça". Reconheça os sinais de estresse acumulado ou traumático. O autocuidado é essencial.
+
+### Movimentação e Viagens no Campo
+As viagens de campo são os momentos de maior vulnerabilidade.
+* **Regras de Ouro no Veículo:** Cintos de segurança obrigatórios. Velocidade máxima de 80 km/h para veículos pesados/4x4 e 100 km/h para leves. Nunca transporte armas, pessoal militar ou itens não autorizados. Sempre informe a base sobre seu itinerário e tempos estimados de chegada (ETA).
+* **Comboios:** Mantenha uma distância constante entre veículos e posicione o veículo mais lento à frente.
+* **Checkpoints:** Aproxime-se devagar, remova óculos escuros e bonés, mantenha as mãos visíveis e seja cooperativo. Nunca ofereça subornos.
+
+### Segurança de Instalações e Comunicações
+* **Escritórios e Residências:** Utilize camadas de proteção (muros, cercas, trincos) para retardar intrusos (Defesa em Profundidade). Identifique todos os visitantes e nunca os deixe sem escolta. Saiba usar extintores (técnica PASS: Puxar, Mirar, Pressionar, Varrer) e conheça as rotas de evacuação.
+* **Comunicações Táticas:** Rádio (VHF/HF) apenas para mensagens essenciais (clareza, brevidade e segurança). Smartphones podem ser rastreados e vigiados; não transmita informações sensíveis por canais não criptografados.
+
+### Resposta a Ameaças Específicas
+* **Roubo/Assalto:** Não resista. Entregue o que for pedido. Sua vida vale mais que qualquer ativo.
+* **Carjacking:** Se forçado a parar por homens armados, saia lentamente com as mãos visíveis e deixe as chaves na ignição.
+* **Sequestro e Reféns:** Aceite sua situação e prepare-se mentalmente para uma longa estadia. Tente estabelecer uma relação humana com os captores falando sobre esportes ou família, mas evite política e religião. A organização não paga resgates para não colocar outros funcionários em risco.
+* **Violência Sexual:** A organização tem tolerância zero para abusos. Em caso de agressão, busque atendimento médico imediato (em até 72 horas) para profilaxia pós-exposição (PEP) contra o HIV.
+* **Armas e Explosivos:** 
+  * *Fogos de Artilharia/Ataques Aéreos:* Se não puder escapar, proteja órgãos vitais deitando-se de costas (ou bruços), mãos na cabeça, joelhos no peito e boca aberta para reduzir a pressão do impacto nos pulmões.
+  * *Minas/UXOs:* Se encontrar uma mina, pare imediatamente. Não se mova e espere por ajuda profissional. Nunca tente resgatar um colega ferido entrando no campo minado.
+
+### Segurança Operacional em Atividades Específicas
+* **Distribuição de Ajuda e Dinheiro:** Minimize multidões e envolva líderes comunitários na segurança e no gerenciamento de queixas. Use sistemas eletrônicos sempre que possível para evitar o transporte físico de grandes somas de dinheiro.
+* **Instalações de Saúde e Prisões:** 
+  * *Hospitais:* Implemente uma política de "proibição de armas" e proteja o sigilo médico para ganhar a confiança de todas as partes.
+  * *Prisões:* Respeite os regulamentos internos, mas nunca entregue seus documentos de trabalho ou notas para serem confiscados pelas autoridades detentoras.
+
+### Gestão de Incidentes
+* **Primeiros Socorros e Apoio Psicológico:** Todo funcionário deve saber aplicar a regra ABC (Vias aéreas, Respiração e Circulação) para estabilizar feridos. Após um incidente, o apoio psicológico básico deve focar em restaurar a sensação de segurança, ouvir sem julgar e não forçar o relato detalhado dos fatos.
+* **Relatórios de Incidentes:** Qualquer evento que cause dano ou um "quase acidente" (near miss) deve ser reportado imediatamente. A informação precisa ajuda a prevenir que o mesmo aconteça com outros colegas.
+
+---
+*Isenção de Responsabilidade: Este manual fornece orientações gerais e não substitui o julgamento individual ou os planos de segurança específicos de cada localidade.*`, 
+        order: 12, 
+        profile: ProfileType.NGO_VOLUNTEER 
       }
     ];
 

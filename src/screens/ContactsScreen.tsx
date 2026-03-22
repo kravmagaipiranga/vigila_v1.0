@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { collection, query, where, onSnapshot, addDoc, deleteDoc, doc, updateDoc, or } from 'firebase/firestore';
 import { db, auth } from '../firebase';
 import { Contact, ContactType } from '../types';
-import { Phone, Mail, Plus, Trash2, Edit2, X, Check, MapPin, Shield, User, UserPlus } from 'lucide-react';
+import { Phone, Mail, Plus, Trash2, Edit2, X, Check, MapPin, Shield, User, UserPlus, Share2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { handleFirestoreError, OperationType } from '../services/firestore';
 
@@ -88,11 +88,32 @@ const ContactsScreen: React.FC = () => {
           setName(contact.name[0]);
         }
         if (contact.tel && contact.tel.length > 0) {
-          setPhone(contact.tel[0]);
+          // Keep only numbers and + sign
+          const cleanPhone = contact.tel[0].replace(/[^\d+]/g, '');
+          setPhone(cleanPhone);
         }
       }
     } catch (err) {
       console.error('Error selecting contact:', err);
+    }
+  };
+
+  const handleShare = async (contact: Contact) => {
+    const message = `Contato de Emergência: ${contact.name} - ${contact.phone}`;
+    
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: 'Contato de Emergência',
+          text: message,
+        });
+      } catch (err) {
+        console.error('Erro ao compartilhar:', err);
+      }
+    } else {
+      // Fallback for browsers that don't support Web Share API
+      const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
+      window.open(whatsappUrl, '_blank');
     }
   };
 
@@ -265,14 +286,23 @@ const ContactsScreen: React.FC = () => {
                 </div>
                 <div className="flex gap-2">
                   <button
+                    onClick={() => handleShare(contact)}
+                    className="w-10 h-10 bg-ciano/10 text-ciano rounded-xl flex items-center justify-center hover:bg-ciano hover:text-obsidiana transition-all"
+                    title="Compartilhar"
+                  >
+                    <Share2 size={18} />
+                  </button>
+                  <button
                     onClick={() => handleDelete(contact.id)}
                     className="w-10 h-10 bg-alerta/10 text-alerta rounded-xl flex items-center justify-center hover:bg-alerta hover:text-pergaminho transition-all"
+                    title="Excluir"
                   >
                     <Trash2 size={18} />
                   </button>
                   <a
                     href={`tel:${contact.phone}`}
                     className="w-12 h-12 bg-ardosia border border-ouro/20 text-ouro rounded-2xl flex items-center justify-center hover:bg-ouro hover:text-obsidiana transition-all"
+                    title="Ligar"
                   >
                     <Phone size={20} />
                   </a>

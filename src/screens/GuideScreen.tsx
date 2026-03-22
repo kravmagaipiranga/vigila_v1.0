@@ -154,16 +154,18 @@ const GuideScreen: React.FC = () => {
               Tente buscar por outro termo ou atualize o banco de dados.
             </p>
           </div>
-          <button 
-            onClick={async () => {
-              setLoading(true);
-              await seedGuides(true);
-              setLoading(false);
-            }}
-            className="bg-ouro/10 border border-ouro/20 text-ouro text-[10px] font-black uppercase tracking-[0.2em] px-6 py-3 rounded-xl hover:bg-ouro/20 transition-all"
-          >
-            Sincronizar Conteúdo
-          </button>
+          {profile?.role === 'admin' && (
+            <button 
+              onClick={async () => {
+                setLoading(true);
+                await seedGuides(true);
+                setLoading(false);
+              }}
+              className="bg-ouro/10 border border-ouro/20 text-ouro text-[10px] font-black uppercase tracking-[0.2em] px-6 py-3 rounded-xl hover:bg-ouro/20 transition-all"
+            >
+              Sincronizar Conteúdo
+            </button>
+          )}
         </div>
       ) : (
         <div className="space-y-10">

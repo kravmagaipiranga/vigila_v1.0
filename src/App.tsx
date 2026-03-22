@@ -19,6 +19,7 @@ const ContactsScreen = lazy(() => import('./screens/ContactsScreen'));
 const SettingsScreen = lazy(() => import('./screens/SettingsScreen'));
 const ChecklistScreen = lazy(() => import('./screens/ChecklistScreen'));
 const RisksScreen = lazy(() => import('./screens/RisksScreen'));
+const JournalScreen = lazy(() => import('./screens/JournalScreen'));
 
 const LoadingScreen = () => (
   <div className="min-h-screen bg-obsidiana flex flex-col items-center justify-center gap-6 p-6">
@@ -63,8 +64,11 @@ const AppContent: React.FC = () => {
 
   useEffect(() => {
     if (user) {
-      seedGuides();
-      seedOfficialContacts();
+      // Only seed if user is admin to prevent permission errors for regular users
+      if (user.email === 'kravmagaipiranga@gmail.com') {
+        seedGuides();
+        seedOfficialContacts();
+      }
     }
   }, [user]);
 
@@ -94,6 +98,8 @@ const AppContent: React.FC = () => {
         return <SettingsScreen />;
       case 'risks':
         return <RisksScreen />;
+      case 'journal':
+        return <JournalScreen />;
       default:
         return <HomeScreen setActiveTab={setActiveTab} />;
     }

@@ -131,9 +131,18 @@ service cloud.firestore {
       return data.keys().hasAll(['section', 'title', 'content']) &&
              data.section in ['Desastres e Emergências', 'Preparação', 'Segurança'] &&
              data.title is string && data.title.size() > 0 && data.title.size() < 200 &&
-             data.content is string && data.content.size() > 0 && data.content.size() < 5000 &&
+             data.content is string && data.content.size() > 0 && data.content.size() < 15000 &&
              (!('order' in data) || data.order is int) &&
              (!('profile' in data) || data.profile is string);
+    }
+
+    function isValidJournalEntry(data) {
+      return data.keys().hasAll(['userId', 'title', 'content', 'createdAt']) &&
+             data.userId is string &&
+             data.title is string && data.title.size() > 0 && data.title.size() < 200 &&
+             data.content is string && data.content.size() > 0 && data.content.size() < 50000 &&
+             isValidDateString(data.createdAt) &&
+             (!('updatedAt' in data) || isValidDateString(data.updatedAt));
     }
 
     // ===============================================================
@@ -203,6 +212,19 @@ service cloud.firestore {
       
       // Users can read and delete their own grant
       allow read, delete: if isAuthenticated() && request.auth.token.email == email;
+    }
+
+    match /journal_entries/{entryId} {
+      allow read: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
+      
+      allow create: if isAuthenticated() && isValidJournalEntry(request.resource.data) && 
+                    (request.resource.data.userId == request.auth.uid || isAdmin());
+      
+      allow update: if isAuthenticated() && isValidJournalEntry(request.resource.data) && 
+                    (resource.data.userId == request.auth.uid || isAdmin()) &&
+                    request.resource.data.createdAt == resource.data.createdAt;
+      
+      allow delete: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
     }
 
     // Default deny

@@ -181,7 +181,7 @@ export async function checkPendingProGrant(email: string): Promise<{ isPro: bool
 
 // Data seeding for guides (only for dev/admin)
 export async function seedGuides(force = false) {
-  const CURRENT_GUIDE_VERSION = '20260321_ufmg_dsu_v1';
+  const CURRENT_GUIDE_VERSION = '20260322_public_spaces_v1';
   
   try {
     const versionRef = doc(db, 'settings', 'guide_version');
@@ -198,7 +198,7 @@ export async function seedGuides(force = false) {
     const guides: Omit<GuideContent, 'id'>[] = [
       // FUNDAMENTOS (Based on OffGridWeb Prepping 101)
       { 
-        section: 'Planejamento', 
+        section: 'Preparação', 
         title: 'Fundamentos da Preparação (Prepping 101)', 
         content: `A preparação não é sobre medo, mas sobre resiliência e autonomia.
 
@@ -216,7 +216,7 @@ export async function seedGuides(force = false) {
         profile: ProfileType.GENERIC 
       },
       { 
-        section: 'Planejamento', 
+        section: 'Preparação', 
         title: 'Kits de Emergência: EDC, GHB e BOB', 
         content: `Diferentes situações exigem diferentes níveis de equipamento.
 
@@ -237,7 +237,7 @@ Mochila de 72 horas para evacuação imediata.
 
       // DESASTRES NATURAIS (Based on Ready.gov)
       { 
-        section: 'Prevenção', 
+        section: 'Desastres e Emergências', 
         title: 'Inundações e Enchentes', 
         content: `As enchentes são o desastre natural mais comum.
 
@@ -256,7 +256,7 @@ Mochila de 72 horas para evacuação imediata.
         profile: ProfileType.GENERIC 
       },
       { 
-        section: 'Prevenção', 
+        section: 'Desastres e Emergências', 
         title: 'Incêndios Florestais e Urbanos', 
         content: `Incêndios podem se espalhar com velocidade extrema.
 
@@ -272,7 +272,7 @@ Mochila de 72 horas para evacuação imediata.
         profile: ProfileType.GENERIC 
       },
       { 
-        section: 'Prevenção', 
+        section: 'Desastres e Emergências', 
         title: 'Terremotos e Desabamentos', 
         content: `Terremotos ocorrem sem aviso prévio.
 
@@ -293,7 +293,7 @@ Mochila de 72 horas para evacuação imediata.
 
       // SEGURANÇA NO CAMPUS (Based on UFMG DSU)
       { 
-        section: 'Prevenção', 
+        section: 'Segurança', 
         title: 'Segurança no Campus e Áreas Públicas', 
         content: `Dicas essenciais para o dia a dia em ambientes universitários e urbanos.
 
@@ -323,7 +323,7 @@ Mochila de 72 horas para evacuação imediata.
 
       // OUTRAS EMERGÊNCIAS (Based on Ready.gov)
       { 
-        section: 'Análise', 
+        section: 'Desastres e Emergências', 
         title: 'Ataques Cibernéticos e Falhas Tecnológicas', 
         content: `A dependência digital cria novas vulnerabilidades.
 
@@ -339,7 +339,7 @@ Mochila de 72 horas para evacuação imediata.
         profile: ProfileType.GENERIC 
       },
       { 
-        section: 'Análise', 
+        section: 'Desastres e Emergências', 
         title: 'Emergências Químicas e Biológicas', 
         content: `Ameaças invisíveis exigem protocolos rigorosos.
 
@@ -354,28 +354,56 @@ Mochila de 72 horas para evacuação imediata.
         order: 8, 
         profile: ProfileType.GENERIC 
       },
+      { 
+        section: 'Desastres e Emergências', 
+        title: 'Ataques em Locais Públicos', 
+        content: `Ataques em espaços lotados e públicos podem acontecer sem aviso.
+
+### Tipos de Ataques em Massa:
+* Atiradores ativos
+* Indivíduos usando veículos como armas
+* Indivíduos com armas improvisadas (facas, etc.)
+* Dispositivos explosivos
+
+### Preparação (ANTES):
+* Mantenha-se alerta ao seu redor.
+* Identifique saídas e rotas de fuga ao entrar em um local.
+* Relate comportamentos ou itens suspeitos às autoridades.
+
+### Sobrevivência (DURANTE) - Corra, Esconda-se, Lute:
+1. **Corra (Run):** Se houver um caminho seguro, fuja imediatamente. Deixe seus pertences para trás. Ajude outros a escapar, se possível.
+2. **Esconda-se (Hide):** Se não puder fugir, encontre um local seguro. Tranque ou bloqueie portas, apague as luzes e silencie seu celular. Fique fora do campo de visão.
+3. **Lute (Fight):** Como último recurso e apenas quando sua vida estiver em perigo iminente. Aja com agressividade física, use itens ao redor como armas e tente incapacitar o agressor.
+
+### Após o Ataque (DEPOIS):
+* Quando a polícia chegar, mantenha as mãos visíveis e vazias. Siga as instruções imediatamente.
+* Evite fazer movimentos bruscos em direção aos policiais.
+* Procure ajuda profissional para lidar com o trauma psicológico.`, 
+        order: 9, 
+        profile: ProfileType.GENERIC 
+      },
 
       // PERFIS ESPECÍFICOS
       { 
-        section: 'Planejamento', 
+        section: 'Segurança', 
         title: 'Protocolos para Agentes de Segurança', 
         content: `Gerenciamento de multidões e proteção de perímetros em crises.
       
 * **Triagem de Riscos:** Identifique líderes de distúrbios e pontos de estrangulamento.
 * **Comunicação de Crise:** Use linguagem clara e comandos diretos para evitar pânico.
 * **Equipamento:** Verifique a integridade de EPIs e suprimentos médicos táticos (IFAK).`, 
-        order: 9, 
+        order: 10, 
         profile: ProfileType.SECURITY_AGENT 
       },
       { 
-        section: 'Prevenção', 
+        section: 'Segurança', 
         title: 'Segurança Escolar e Comunitária', 
         content: `Proteção de grupos vulneráveis em emergências.
       
 * **Cadeia de Custódia:** Protocolos rigorosos para liberação de alunos em desastres.
 * **Primeiros Socorros Psicológicos:** Técnicas para acalmar crianças e idosos durante o evento.
 * **Inventário de Recursos:** Saiba quem na comunidade possui habilidades médicas, ferramentas ou veículos pesados.`, 
-        order: 10, 
+        order: 11, 
         profile: ProfileType.TEACHER 
       }
     ];

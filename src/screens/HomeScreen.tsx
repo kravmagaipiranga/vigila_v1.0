@@ -67,9 +67,9 @@ const HomeScreen: React.FC<HomeProps> = ({ setActiveTab }) => {
   const gainNodeRef = useRef<GainNode | null>(null);
 
   const cards = [
-    { id: 'guide', title: 'Planejamento', subtitle: 'Antes de Sair', color: 'bg-ardosia border-ouro/20 text-ouro' },
-    { id: 'guide', title: 'Prevenção', subtitle: 'Em Campo', color: 'bg-ardosia border-ouro/20 text-ouro' },
-    { id: 'guide', title: 'Análise', subtitle: 'Após Incidente', color: 'bg-ardosia border-ouro/20 text-ouro' },
+    { id: 'guide', title: 'Preparação', subtitle: 'Antes de Sair', color: 'bg-ardosia border-ouro/20 text-ouro' },
+    { id: 'guide', title: 'Desastres e Emergências', subtitle: 'Em Campo', color: 'bg-ardosia border-ouro/20 text-ouro' },
+    { id: 'guide', title: 'Segurança', subtitle: 'Boas Práticas', color: 'bg-ardosia border-ouro/20 text-ouro' },
   ];
 
   const stopAlarm = () => {

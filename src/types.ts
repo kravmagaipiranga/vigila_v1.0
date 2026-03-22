@@ -1,4 +1,4 @@
-export type Section = 'Planejamento' | 'Prevenção' | 'Análise';
+export type Section = 'Desastres e Emergências' | 'Preparação' | 'Segurança';
 export type ContactType = 'Polícia' | 'Hospital' | 'Advogado' | 'Outro';
 
 export enum ProfileType {
@@ -21,6 +21,7 @@ export interface UserProfile {
   isPro?: boolean;
   proExpirationDate?: string | null;
   planType?: 'gratuito' | '7 dias' | '1 ano' | 'vitalício';
+  role?: 'admin' | 'user';
 }
 
 export interface Contact {

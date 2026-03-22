@@ -64,7 +64,7 @@ const GuideScreen: React.FC = () => {
     return matchesSearch && matchesTheme;
   });
 
-  const sections: Section[] = ['Planejamento', 'Prevenção', 'Análise'];
+  const sections: Section[] = ['Preparação', 'Desastres e Emergências', 'Segurança'];
 
   return (
     <div className="space-y-8 pb-20">

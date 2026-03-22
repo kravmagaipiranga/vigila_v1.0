@@ -46,24 +46,24 @@ export const PROFILE_CHECKLIST_ITEMS: Record<ProfileType, Partial<ChecklistItem>
 
 export const PROFILE_GUIDE_CONTENT: Record<ProfileType, Partial<GuideContent>[]> = {
   [ProfileType.GENERIC]: [
-    { section: 'Prevenção', title: 'Segurança no Dia a Dia', content: 'Dicas fundamentais para manter a vigilância em ambientes urbanos comuns.', order: 1 },
+    { section: 'Segurança', title: 'Segurança no Dia a Dia', content: 'Dicas fundamentais para manter a vigilância em ambientes urbanos comuns.', order: 1 },
   ],
   [ProfileType.SECURITY_AGENT]: [
-    { section: 'Análise', title: 'Análise de Risco Operacional', content: 'Como identificar ameaças em potencial antes que se tornem incidentes reais.', order: 1 },
+    { section: 'Desastres e Emergências', title: 'Análise de Risco Operacional', content: 'Como identificar ameaças em potencial antes que se tornem incidentes reais.', order: 1 },
   ],
   [ProfileType.TEACHER]: [
-    { section: 'Planejamento', title: 'Segurança Escolar', content: 'Protocolos para garantir a integridade dos alunos e funcionários no ambiente educacional.', order: 1 },
+    { section: 'Preparação', title: 'Segurança Escolar', content: 'Protocolos para garantir a integridade dos alunos e funcionários no ambiente educacional.', order: 1 },
   ],
   [ProfileType.NGO_VOLUNTEER]: [
-    { section: 'Prevenção', title: 'Atuação em Áreas Críticas', content: 'Estratégias de aproximação e permanência segura em comunidades vulneráveis.', order: 1 },
+    { section: 'Segurança', title: 'Atuação em Áreas Críticas', content: 'Estratégias de aproximação e permanência segura em comunidades vulneráveis.', order: 1 },
   ],
   [ProfileType.HEALTH_PROFESSIONAL]: [
-    { section: 'Prevenção', title: 'Segurança Hospitalar', content: 'Gerenciamento de conflitos e proteção pessoal em ambientes de saúde.', order: 1 },
+    { section: 'Segurança', title: 'Segurança Hospitalar', content: 'Gerenciamento de conflitos e proteção pessoal em ambientes de saúde.', order: 1 },
   ],
   [ProfileType.TOURIST]: [
-    { section: 'Planejamento', title: 'Viajante Seguro', content: 'Como aproveitar sua viagem minimizando riscos de furtos e golpes.', order: 1 },
+    { section: 'Preparação', title: 'Viajante Seguro', content: 'Como aproveitar sua viagem minimizando riscos de furtos e golpes.', order: 1 },
   ],
   [ProfileType.PUBLIC_FIGURE]: [
-    { section: 'Análise', title: 'Gestão de Exposição', content: 'Técnicas para reduzir a vulnerabilidade causada pela alta visibilidade pública.', order: 1 },
+    { section: 'Desastres e Emergências', title: 'Gestão de Exposição', content: 'Técnicas para reduzir a vulnerabilidade causada pela alta visibilidade pública.', order: 1 },
   ],
 };

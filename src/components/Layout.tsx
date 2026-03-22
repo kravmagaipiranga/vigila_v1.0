@@ -34,6 +34,18 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab }) =>
     setIsMenuOpen(false);
   };
 
+  const handleLanguageChange = (langCode: string) => {
+    setCurrentLang(langCode);
+    setIsLanguageOpen(false);
+    
+    // Trigger Google Translate
+    const select = document.querySelector('.goog-te-combo') as HTMLSelectElement;
+    if (select) {
+      select.value = langCode.toLowerCase();
+      select.dispatchEvent(new Event('change'));
+    }
+  };
+
   return (
     <div className="min-h-screen bg-obsidiana text-pergaminho flex flex-col max-w-md mx-auto relative overflow-y-auto shadow-2xl">
       {/* Sidebar Menu */}
@@ -150,10 +162,7 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab }) =>
                   {languages.map((lang) => (
                     <button
                       key={lang.code}
-                      onClick={() => {
-                        setCurrentLang(lang.code);
-                        setIsLanguageOpen(false);
-                      }}
+                      onClick={() => handleLanguageChange(lang.code)}
                       className={`w-full p-3 rounded-xl flex items-center justify-between transition-all ${
                         currentLang === lang.code 
                           ? 'bg-ouro/10 text-ouro' 

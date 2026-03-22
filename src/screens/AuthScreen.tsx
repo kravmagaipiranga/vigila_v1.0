@@ -73,6 +73,31 @@ const AuthScreen: React.FC = () => {
           </p>
         </div>
 
+        <div className="flex bg-ardosia p-1.5 rounded-2xl border border-ouro/10">
+          <button
+            type="button"
+            onClick={() => setIsLogin(true)}
+            className={`flex-1 py-3 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all ${
+              isLogin 
+                ? 'bg-ouro text-obsidiana shadow-lg' 
+                : 'text-pergaminho/40 hover:text-pergaminho'
+            }`}
+          >
+            Entrar
+          </button>
+          <button
+            type="button"
+            onClick={() => setIsLogin(false)}
+            className={`flex-1 py-3 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all ${
+              !isLogin 
+                ? 'bg-ouro text-obsidiana shadow-lg' 
+                : 'text-pergaminho/40 hover:text-pergaminho'
+            }`}
+          >
+            Criar Conta
+          </button>
+        </div>
+
         <form onSubmit={handleAuth} className="space-y-4">
           <div className="space-y-2">
             <div className="relative group">
@@ -143,12 +168,6 @@ const AuthScreen: React.FC = () => {
         </div>
 
         <div className="text-center space-y-4">
-          <button
-            onClick={() => setIsLogin(!isLogin)}
-            className="text-pergaminho/40 text-[10px] font-black uppercase tracking-widest hover:text-ouro transition-colors"
-          >
-            {isLogin ? 'Não possui credenciais? Solicite acesso' : 'Já possui credenciais? Entre aqui'}
-          </button>
           {isLogin && (
             <div>
               <button

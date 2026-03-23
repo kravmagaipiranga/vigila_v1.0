@@ -48,14 +48,19 @@ const ContactsScreen: React.FC = () => {
     }
 
     try {
-      await addDoc(collection(db, 'contacts'), {
+      const newContact: any = {
         userId: auth.currentUser.uid,
         name,
         phone,
-        email,
         type,
         isOfficial: false,
-      });
+      };
+      
+      if (email.trim()) {
+        newContact.email = email.trim();
+      }
+
+      await addDoc(collection(db, 'contacts'), newContact);
       setIsAdding(false);
       setName('');
       setPhone('');
@@ -225,6 +230,19 @@ const ContactsScreen: React.FC = () => {
                         className="w-full bg-obsidiana border border-ouro/10 rounded-2xl py-4 px-4 focus:outline-none focus:border-ouro transition-colors text-sm text-pergaminho placeholder:text-pergaminho/20"
                         placeholder="Ex: (11) 99999-9999"
                       />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[8px] font-black uppercase tracking-widest text-ouro/60 ml-1">Tipo de Contato</label>
+                      <select
+                        value={type}
+                        onChange={(e) => setType(e.target.value as ContactType)}
+                        className="w-full bg-obsidiana border border-ouro/10 rounded-2xl py-4 px-4 focus:outline-none focus:border-ouro transition-colors text-sm text-pergaminho appearance-none"
+                      >
+                        <option value="Polícia">Polícia</option>
+                        <option value="Hospital">Hospital</option>
+                        <option value="Advogado">Advogado</option>
+                        <option value="Outro">Outro</option>
+                      </select>
                     </div>
                     <div className="flex gap-2">
                       <button

@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../AuthContext';
-import { Shield, AlertCircle, MapPin, ChevronRight, Share2, Volume2, VolumeX, Edit3, X, Search, Loader2, RefreshCw } from 'lucide-react';
+import { Shield, AlertCircle, MapPin, ChevronRight, Share2, Volume2, VolumeX, Edit3, X, Search, Loader2, RefreshCw, CheckSquare, BookOpen, Phone, Book, Lock } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../firebase';
@@ -12,7 +12,7 @@ interface HomeProps {
 }
 
 const HomeScreen: React.FC<HomeProps> = ({ setActiveTab }) => {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const [sendingAlert, setSendingAlert] = useState(false);
   const [locationStatus, setLocationStatus] = useState<'idle' | 'fetching' | 'success' | 'error'>('idle');
   const [currentLocation, setCurrentLocation] = useState<string | null>(null);
@@ -22,6 +22,44 @@ const HomeScreen: React.FC<HomeProps> = ({ setActiveTab }) => {
   const [manualLocationInput, setManualLocationInput] = useState('');
   const [searchResults, setSearchResults] = useState<PlaceResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+
+  const isAdmin = user?.email === 'kravmagaipiranga@gmail.com';
+  const isPro = isAdmin || (profile?.isPro && (!profile.proExpirationDate || new Date(profile.proExpirationDate) > new Date()));
+  const isExpired = profile ? (!profile.isPro && profile.trialEndsAt && new Date() > new Date(profile.trialEndsAt)) : false;
+  const isTrial = profile ? (!profile.isPro && profile.trialEndsAt && new Date() <= new Date(profile.trialEndsAt)) : false;
+  const isLifetime = isAdmin || profile?.planType === 'lifetime';
+  
+  const getRemainingTime = () => {
+    if (isPro && profile?.proExpirationDate) {
+      const now = new Date();
+      const expiry = new Date(profile.proExpirationDate);
+      const diffTime = expiry.getTime() - now.getTime();
+      if (diffTime <= 0) return null;
+
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      
+      if (diffDays <= 7) {
+        return `${diffDays} ${diffDays === 1 ? 'dia' : 'dias'}`;
+      } else {
+        const diffMonths = Math.floor(diffDays / 30);
+        if (diffMonths >= 1) {
+          const remainingDays = diffDays % 30;
+          return `${diffMonths} ${diffMonths === 1 ? 'mês' : 'meses'}${remainingDays > 0 ? ` e ${remainingDays} d` : ''}`;
+        }
+        return `${diffDays} dias`;
+      }
+    } else if (isTrial && profile?.trialEndsAt) {
+      const now = new Date();
+      const expiry = new Date(profile.trialEndsAt);
+      const diffTime = expiry.getTime() - now.getTime();
+      if (diffTime <= 0) return null;
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      return `${diffDays} ${diffDays === 1 ? 'dia' : 'dias'}`;
+    }
+    return null;
+  };
+
+  const remainingTime = getRemainingTime();
   
   // Audio Recording State
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -290,6 +328,30 @@ const HomeScreen: React.FC<HomeProps> = ({ setActiveTab }) => {
 
   return (
     <div className="space-y-8">
+      {/* Plan/Trial Banner */}
+      {!isLifetime && (
+        <div className={`p-4 rounded-2xl border ${isExpired ? 'bg-alerta/10 border-alerta/20 text-alerta' : (isPro ? 'bg-ciano/10 border-ciano/20 text-ciano' : 'bg-ouro/10 border-ouro/20 text-ouro')} flex items-center justify-between`}>
+          <div>
+            <h3 className="text-[10px] font-black uppercase tracking-widest">
+              {isExpired ? 'Período de Teste Expirado' : (isPro ? 'Assinatura PRO Ativa' : 'Período de Teste')}
+            </h3>
+            <p className="text-xs mt-1 opacity-80">
+              {isExpired 
+                ? 'Funções PRO bloqueadas. Assine para liberar.' 
+                : (remainingTime ? `${remainingTime} restantes de acesso total.` : 'Acesso total liberado.')}
+            </p>
+          </div>
+          {!isPro && (
+            <button 
+              onClick={() => setActiveTab('settings')}
+              className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest ${isExpired ? 'bg-alerta text-pergaminho' : 'bg-ouro text-obsidiana'}`}
+            >
+              Assinar
+            </button>
+          )}
+        </div>
+      )}
+
       {/* Header Info */}
       <div className="space-y-1">
         <h2 className="text-ouro/60 text-[10px] font-black uppercase tracking-[0.2em]">Painel de Controle</h2>
@@ -327,6 +389,44 @@ const HomeScreen: React.FC<HomeProps> = ({ setActiveTab }) => {
             <span className="text-[10px] font-bold uppercase tracking-widest opacity-80">Sonoro</span>
           </div>
         </motion.button>
+      </div>
+
+      {/* Quick Menu */}
+      <div className="grid grid-cols-4 gap-2 pt-2">
+        {[
+          { id: 'checklist', icon: CheckSquare, label: 'Checklist', isPro: false },
+          { id: 'guide', icon: BookOpen, label: 'Guia', isPro: true },
+          { id: 'contacts', icon: Phone, label: 'Contatos', isPro: false },
+          { id: 'journal', icon: Book, label: 'Diário', isPro: true },
+        ].map((item) => {
+          const locked = isExpired && item.isPro;
+          return (
+            <motion.button
+              key={item.id}
+              whileTap={locked ? {} : { scale: 0.95 }}
+              onClick={() => {
+                if (locked) {
+                  alert('Esta funcionalidade é exclusiva para assinantes PRO.');
+                  return;
+                }
+                setActiveTab(item.id);
+              }}
+              className={`flex flex-col items-center justify-center gap-2 group ${locked ? 'opacity-50' : ''}`}
+            >
+              <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-ouro/60 bg-ouro/5 group-hover:bg-ouro/10 group-hover:text-ouro transition-all relative">
+                <item.icon size={22} strokeWidth={2} />
+                {locked && (
+                  <div className="absolute -bottom-1 -right-1 bg-obsidiana rounded-full p-0.5">
+                    <Lock size={12} className="text-alerta" />
+                  </div>
+                )}
+              </div>
+              <span className="text-[9px] font-black uppercase tracking-widest text-pergaminho/40 group-hover:text-ouro transition-colors">
+                {item.label}
+              </span>
+            </motion.button>
+          );
+        })}
       </div>
 
       {/* Location Status & Alert Button */}
@@ -467,19 +567,41 @@ const HomeScreen: React.FC<HomeProps> = ({ setActiveTab }) => {
       <div className="space-y-4">
         <div className="flex justify-between items-end">
           <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-ouro/60">Guia de Segurança</h3>
-          <button onClick={() => setActiveTab('guide')} className="text-[10px] font-black uppercase tracking-widest text-ouro hover:underline">Ver Todos</button>
+          <button 
+            onClick={() => {
+              if (isExpired) {
+                alert('O Guia de Segurança é exclusivo para assinantes PRO.');
+                return;
+              }
+              setActiveTab('guide');
+            }} 
+            className="text-[10px] font-black uppercase tracking-widest text-ouro hover:underline"
+          >
+            Ver Todos
+          </button>
         </div>
         <div className="grid grid-cols-1 gap-3">
           {cards.map((card, idx) => (
             <motion.button
               key={idx}
-              whileTap={{ scale: 0.98 }}
-              onClick={() => setActiveTab('guide')}
-              className={`flex items-center justify-between p-5 rounded-3xl border ${card.color} transition-all hover:scale-[1.02]`}
+              whileTap={isExpired ? {} : { scale: 0.98 }}
+              onClick={() => {
+                if (isExpired) {
+                  alert('O Guia de Segurança é exclusivo para assinantes PRO.');
+                  return;
+                }
+                setActiveTab('guide');
+              }}
+              className={`flex items-center justify-between p-5 rounded-3xl border ${card.color} transition-all ${isExpired ? 'opacity-50 cursor-not-allowed' : 'hover:scale-[1.02]'}`}
             >
               <div className="flex items-center gap-4">
-                <div className="w-10 h-10 bg-white/5 rounded-xl flex items-center justify-center">
+                <div className="w-10 h-10 bg-white/5 rounded-xl flex items-center justify-center relative">
                   <Shield size={20} />
+                  {isExpired && (
+                    <div className="absolute -bottom-1 -right-1 bg-obsidiana rounded-full p-0.5">
+                      <Lock size={12} className="text-alerta" />
+                    </div>
+                  )}
                 </div>
                 <div className="text-left">
                   <h4 className="text-sm font-black uppercase italic leading-none">{card.title}</h4>

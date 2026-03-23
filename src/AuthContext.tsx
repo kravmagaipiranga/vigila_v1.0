@@ -44,6 +44,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // Initialize profile if it doesn't exist
         const pendingGrant = user.email ? await checkPendingProGrant(user.email) : null;
         
+        const trialEndsAt = new Date();
+        trialEndsAt.setDate(trialEndsAt.getDate() + 3);
+
         const newProfile: UserProfile = {
           uid: user.uid,
           displayName: user.displayName,
@@ -54,7 +57,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           isPro: pendingGrant?.isPro || false,
           proExpirationDate: pendingGrant?.proExpirationDate || null,
           planType: pendingGrant?.planType || 'gratuito',
-          role: user.email === 'kravmagaipiranga@gmail.com' ? 'admin' : 'user'
+          role: user.email === 'kravmagaipiranga@gmail.com' ? 'admin' : 'user',
+          hasCompletedOnboarding: false,
+          trialEndsAt: trialEndsAt.toISOString()
         };
         
         // Save to Firestore immediately

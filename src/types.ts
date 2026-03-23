@@ -22,6 +22,8 @@ export interface UserProfile {
   proExpirationDate?: string | null;
   planType?: 'gratuito' | '7 dias' | '1 ano' | 'vitalício';
   role?: 'admin' | 'user';
+  hasCompletedOnboarding?: boolean;
+  trialEndsAt?: string;
 }
 
 export interface Contact {

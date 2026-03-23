@@ -195,27 +195,39 @@ const SettingsScreen: React.FC = () => {
   };
 
   const getRemainingTime = () => {
-    if (!profile?.proExpirationDate) return null;
-    const now = new Date();
-    const expiry = new Date(profile.proExpirationDate);
-    const diffTime = expiry.getTime() - now.getTime();
-    if (diffTime <= 0) return null;
+    if (isPro && profile?.proExpirationDate) {
+      const now = new Date();
+      const expiry = new Date(profile.proExpirationDate);
+      const diffTime = expiry.getTime() - now.getTime();
+      if (diffTime <= 0) return null;
 
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    
-    if (diffDays <= 7) {
-      return `${diffDays} ${diffDays === 1 ? 'dia' : 'dias'}`;
-    } else {
-      const diffMonths = Math.floor(diffDays / 30);
-      if (diffMonths >= 1) {
-        const remainingDays = diffDays % 30;
-        return `${diffMonths} ${diffMonths === 1 ? 'mês' : 'meses'}${remainingDays > 0 ? ` e ${remainingDays} d` : ''}`;
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      
+      if (diffDays <= 7) {
+        return `${diffDays} ${diffDays === 1 ? 'dia' : 'dias'}`;
+      } else {
+        const diffMonths = Math.floor(diffDays / 30);
+        if (diffMonths >= 1) {
+          const remainingDays = diffDays % 30;
+          return `${diffMonths} ${diffMonths === 1 ? 'mês' : 'meses'}${remainingDays > 0 ? ` e ${remainingDays} d` : ''}`;
+        }
+        return `${diffDays} dias`;
       }
-      return `${diffDays} dias`;
+    } else if (isTrial && profile?.trialEndsAt) {
+      const now = new Date();
+      const expiry = new Date(profile.trialEndsAt);
+      const diffTime = expiry.getTime() - now.getTime();
+      if (diffTime <= 0) return null;
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      return `${diffDays} ${diffDays === 1 ? 'dia' : 'dias'}`;
     }
+    return null;
   };
 
-  const currentPlan = isAdmin ? 'Vitalício (Admin)' : (profile?.planType || 'Gratuito');
+  const isExpired = profile ? (!profile.isPro && profile.trialEndsAt && new Date() > new Date(profile.trialEndsAt)) : false;
+  const isTrial = profile ? (!profile.isPro && profile.trialEndsAt && new Date() <= new Date(profile.trialEndsAt)) : false;
+
+  const currentPlan = isAdmin ? 'Vitalício (Admin)' : (isPro ? (profile?.planType || 'PRO') : (isTrial ? 'Teste Grátis' : 'Gratuito'));
   const remainingTime = getRemainingTime();
 
   return (

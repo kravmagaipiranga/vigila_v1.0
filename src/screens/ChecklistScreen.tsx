@@ -16,6 +16,8 @@ const ChecklistScreen: React.FC = () => {
 
   const [showClearConfirm, setShowClearConfirm] = useState(false);
 
+  const isExpired = profile ? (!profile.isPro && profile.trialEndsAt && new Date() > new Date(profile.trialEndsAt)) : false;
+
   useEffect(() => {
     if (!auth.currentUser) return;
 
@@ -198,13 +200,15 @@ const ChecklistScreen: React.FC = () => {
                 Limpar Tudo
               </button>
             )}
-            <button 
-              onClick={resetToDefault}
-              className="flex items-center gap-2 text-ouro/60 hover:text-ouro transition-colors text-[10px] font-black uppercase tracking-widest"
-            >
-              <RotateCcw size={12} />
-              Resetar
-            </button>
+            {!isExpired && (
+              <button 
+                onClick={resetToDefault}
+                className="flex items-center gap-2 text-ouro/60 hover:text-ouro transition-colors text-[10px] font-black uppercase tracking-widest"
+              >
+                <RotateCcw size={12} />
+                Resetar
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -228,20 +232,22 @@ const ChecklistScreen: React.FC = () => {
         </form>
 
         {/* Suggested Items */}
-        <div className="space-y-3">
-          <h3 className="text-[10px] font-black uppercase tracking-widest text-ouro/40 ml-1">Sugestões de Segurança</h3>
-          <div className="flex flex-wrap gap-2">
-            {SUGGESTED_ITEMS.map((text, idx) => (
-              <button
-                key={idx}
-                onClick={() => handleAddSuggested(text)}
-                className="bg-ardosia/50 border border-ouro/5 hover:border-ouro/20 text-pergaminho/40 hover:text-ouro px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all"
-              >
-                + {text}
-              </button>
-            ))}
+        {!isExpired && (
+          <div className="space-y-3">
+            <h3 className="text-[10px] font-black uppercase tracking-widest text-ouro/40 ml-1">Sugestões de Segurança</h3>
+            <div className="flex flex-wrap gap-2">
+              {SUGGESTED_ITEMS.map((text, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => handleAddSuggested(text)}
+                  className="bg-ardosia/50 border border-ouro/5 hover:border-ouro/20 text-pergaminho/40 hover:text-ouro px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all"
+                >
+                  + {text}
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       {loading ? (
@@ -299,12 +305,14 @@ const ChecklistScreen: React.FC = () => {
               </div>
               <div className="space-y-2">
                 <p className="text-pergaminho/40 text-[10px] font-black uppercase tracking-widest">Sua lista está vazia</p>
-                <button 
-                  onClick={resetToDefault}
-                  className="text-ouro text-xs font-black uppercase tracking-widest hover:underline"
-                >
-                  Carregar Itens Padrão
-                </button>
+                {!isExpired && (
+                  <button 
+                    onClick={resetToDefault}
+                    className="text-ouro text-xs font-black uppercase tracking-widest hover:underline"
+                  >
+                    Carregar Itens Padrão
+                  </button>
+                )}
               </div>
             </div>
           )}

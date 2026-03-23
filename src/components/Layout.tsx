@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { Home, CheckSquare, BookOpen, Phone, Settings, ChevronLeft, Bell, Languages, Book } from 'lucide-react';
+import { Home, CheckSquare, BookOpen, Phone, Settings, ChevronLeft, Bell, Languages, Book, Lock } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { useAuth } from '../AuthContext';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -9,8 +10,11 @@ interface LayoutProps {
 }
 
 const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab }) => {
+  const { profile } = useAuth();
   const [isLanguageOpen, setIsLanguageOpen] = useState(false);
   const [currentLang, setCurrentLang] = useState('PT');
+
+  const isExpired = profile ? (!profile.isPro && profile.trialEndsAt && new Date() > new Date(profile.trialEndsAt)) : false;
 
   const languages = [
     { code: 'PT', name: 'Português', flag: '🇧🇷' },
@@ -19,14 +23,14 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab }) =>
   ];
 
   const tabs = [
-    { id: 'home', icon: Home, label: 'Início' },
-    { id: 'checklist', icon: CheckSquare, label: 'Checklist' },
-    { id: 'guide', icon: BookOpen, label: 'Guia' },
-    { id: 'contacts', icon: Phone, label: 'Contatos' },
-    { id: 'journal', icon: Book, label: 'Diário' },
+    { id: 'home', icon: Home, label: 'Início', isPro: false },
+    { id: 'checklist', icon: CheckSquare, label: 'Checklist', isPro: false },
+    { id: 'guide', icon: BookOpen, label: 'Guia', isPro: true },
+    { id: 'contacts', icon: Phone, label: 'Contatos', isPro: false },
+    { id: 'journal', icon: Book, label: 'Diário', isPro: true },
   ];
 
-  const showBackButton = activeTab !== 'home' && activeTab !== 'settings';
+  const showBackButton = activeTab !== 'home';
 
   const handleTabSelect = (tabId: string) => {
     setActiveTab(tabId);
@@ -139,15 +143,29 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab }) =>
         {tabs.map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
+          const isLocked = isExpired && tab.isPro;
           return (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
+              onClick={() => {
+                if (isLocked) {
+                  alert('Esta funcionalidade é exclusiva para assinantes PRO.');
+                  return;
+                }
+                setActiveTab(tab.id);
+              }}
               className={`flex flex-col items-center gap-1 transition-colors relative ${
                 isActive ? 'text-ciano' : 'text-pergaminho/40'
-              }`}
+              } ${isLocked ? 'opacity-50' : ''}`}
             >
-              <Icon size={24} strokeWidth={isActive ? 2.5 : 2} />
+              <div className="relative">
+                <Icon size={24} strokeWidth={isActive ? 2.5 : 2} />
+                {isLocked && (
+                  <div className="absolute -bottom-1 -right-1 bg-obsidiana rounded-full p-0.5">
+                    <Lock size={10} className="text-alerta" />
+                  </div>
+                )}
+              </div>
               <span className="text-[10px] font-medium uppercase tracking-wider">
                 {tab.label}
               </span>

@@ -13,6 +13,7 @@ import { seedGuides, seedOfficialContacts } from './services/firestore';
 
 // Lazy load screens for better performance
 const AuthScreen = lazy(() => import('./screens/AuthScreen'));
+const OnboardingScreen = lazy(() => import('./screens/OnboardingScreen'));
 const HomeScreen = lazy(() => import('./screens/HomeScreen'));
 const GuideScreen = lazy(() => import('./screens/GuideScreen'));
 const ContactsScreen = lazy(() => import('./screens/ContactsScreen'));
@@ -59,7 +60,7 @@ const LoadingScreen = () => (
 );
 
 const AppContent: React.FC = () => {
-  const { user, loading } = useAuth();
+  const { user, profile, loading } = useAuth();
   const [activeTab, setActiveTab] = useState('home');
 
   useEffect(() => {
@@ -80,6 +81,14 @@ const AppContent: React.FC = () => {
     return (
       <Suspense fallback={<LoadingScreen />}>
         <AuthScreen />
+      </Suspense>
+    );
+  }
+
+  if (profile && profile.hasCompletedOnboarding === false) {
+    return (
+      <Suspense fallback={<LoadingScreen />}>
+        <OnboardingScreen />
       </Suspense>
     );
   }

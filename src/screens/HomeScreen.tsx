@@ -22,6 +22,39 @@ const HomeScreen: React.FC<HomeProps> = ({ setActiveTab }) => {
   const [manualLocationInput, setManualLocationInput] = useState('');
   const [searchResults, setSearchResults] = useState<PlaceResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+  const [isSelectionInProgress, setIsSelectionInProgress] = useState(false);
+
+  // Autocomplete logic for manual location
+  useEffect(() => {
+    if (!isManualLocationModalOpen) {
+      setSearchResults([]);
+      return;
+    }
+
+    if (isSelectionInProgress) {
+      setIsSelectionInProgress(false);
+      return;
+    }
+
+    if (manualLocationInput.trim().length < 3) {
+      setSearchResults([]);
+      return;
+    }
+
+    const delayDebounceFn = setTimeout(async () => {
+      setIsSearching(true);
+      try {
+        const results = await searchLocation(manualLocationInput.trim());
+        setSearchResults(results);
+      } catch (error) {
+        console.error('Error searching location:', error);
+      } finally {
+        setIsSearching(false);
+      }
+    }, 800);
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [manualLocationInput, isManualLocationModalOpen]);
   const [isIncidentModalOpen, setIsIncidentModalOpen] = useState(false);
   const [incidentType, setIncidentType] = useState<IncidentType>('Outros');
   const [incidentDescription, setIncidentDescription] = useState('');
@@ -317,6 +350,7 @@ const HomeScreen: React.FC<HomeProps> = ({ setActiveTab }) => {
   };
 
   const selectLocation = (place: PlaceResult) => {
+    setIsSelectionInProgress(true);
     setCurrentCoords(`${place.location.lat.toFixed(4)}, ${place.location.lng.toFixed(4)}`);
     setCurrentLocation(place.address || place.name);
     setManualLocationInput(place.address || place.name);

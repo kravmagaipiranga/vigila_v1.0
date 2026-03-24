@@ -1,10 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../AuthContext';
-import { Shield, AlertCircle, MapPin, ChevronRight, Share2, Volume2, VolumeX, Edit3, X, Search, Loader2, RefreshCw, CheckSquare, BookOpen, Phone, Book, Lock } from 'lucide-react';
+import { Shield, AlertCircle, MapPin, ChevronRight, Share2, Volume2, VolumeX, Edit3, X, Search, Loader2, RefreshCw, CheckSquare, BookOpen, Phone, Book, Lock, AlertTriangle } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { collection, query, where, getDocs } from 'firebase/firestore';
+import { collection, query, where, getDocs, addDoc } from 'firebase/firestore';
 import { db } from '../firebase';
-import { Contact } from '../types';
+import { Contact, IncidentType } from '../types';
 import { searchLocation, reverseGeocode, PlaceResult } from '../services/geminiService';
 
 interface HomeProps {
@@ -22,12 +22,16 @@ const HomeScreen: React.FC<HomeProps> = ({ setActiveTab }) => {
   const [manualLocationInput, setManualLocationInput] = useState('');
   const [searchResults, setSearchResults] = useState<PlaceResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+  const [isIncidentModalOpen, setIsIncidentModalOpen] = useState(false);
+  const [incidentType, setIncidentType] = useState<IncidentType>('Outros');
+  const [incidentDescription, setIncidentDescription] = useState('');
+  const [isSubmittingIncident, setIsSubmittingIncident] = useState(false);
 
   const isAdmin = user?.email === 'kravmagaipiranga@gmail.com';
   const isPro = isAdmin || (profile?.isPro && (!profile.proExpirationDate || new Date(profile.proExpirationDate) > new Date()));
   const isExpired = profile ? (!profile.isPro && profile.trialEndsAt && new Date() > new Date(profile.trialEndsAt)) : false;
   const isTrial = profile ? (!profile.isPro && profile.trialEndsAt && new Date() <= new Date(profile.trialEndsAt)) : false;
-  const isLifetime = isAdmin || profile?.planType === 'lifetime';
+  const isLifetime = isAdmin || profile?.planType === 'vitalício';
   
   const getRemainingTime = () => {
     if (isPro && profile?.proExpirationDate) {
@@ -182,9 +186,9 @@ const HomeScreen: React.FC<HomeProps> = ({ setActiveTab }) => {
       }
       const position = await new Promise<GeolocationPosition>((resolve, reject) => {
         navigator.geolocation.getCurrentPosition(resolve, reject, {
-          enableHighAccuracy: false,
+          enableHighAccuracy: true,
           timeout: 15000,
-          maximumAge: 10000
+          maximumAge: 0
         });
       });
 
@@ -229,9 +233,9 @@ const HomeScreen: React.FC<HomeProps> = ({ setActiveTab }) => {
         }
         const position = await new Promise<GeolocationPosition>((resolve, reject) => {
           navigator.geolocation.getCurrentPosition(resolve, reject, {
-            enableHighAccuracy: false,
+            enableHighAccuracy: true,
             timeout: 15000,
-            maximumAge: 10000
+            maximumAge: 0
           });
         });
 
@@ -281,8 +285,13 @@ const HomeScreen: React.FC<HomeProps> = ({ setActiveTab }) => {
         window.open(`sms:${firstContact.phone}?body=${encodeURIComponent(message)}`);
       }
     } catch (error: any) {
-      console.error('Error sending alert:', error);
-      alert('Erro ao enviar o alerta.');
+      // Ignore cancellation errors
+      if (error.name === 'AbortError' || error.message === 'Share canceled') {
+        console.log('Share was canceled by user');
+      } else {
+        console.error('Error sending alert:', error);
+        alert('Erro ao enviar o alerta.');
+      }
     } finally {
       setSendingAlert(false);
     }
@@ -323,6 +332,62 @@ const HomeScreen: React.FC<HomeProps> = ({ setActiveTab }) => {
       setCurrentCoords(''); // Clear coordinates if manually entered text
       setLocationStatus('success');
       setIsManualLocationModalOpen(false);
+    }
+  };
+
+  const handleReportIncident = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) return;
+    
+    // Require location for incident reporting
+    if (locationStatus !== 'success' || !currentLocation) {
+      alert('Por favor, ative sua localização ou insira manualmente antes de registrar um incidente.');
+      return;
+    }
+
+    setIsSubmittingIncident(true);
+    try {
+      let lat = 0;
+      let lng = 0;
+      if (currentCoords) {
+        const [latStr, lngStr] = currentCoords.split(', ');
+        lat = parseFloat(latStr);
+        lng = parseFloat(lngStr);
+      } else {
+        // If we only have text location, try to geocode it
+        try {
+          const results = await searchLocation(currentLocation);
+          if (results.length > 0) {
+            lat = results[0].location.lat;
+            lng = results[0].location.lng;
+          } else {
+            throw new Error("Could not geocode manual location");
+          }
+        } catch (error) {
+          console.error("Geocoding failed for incident report:", error);
+          alert("Não foi possível determinar as coordenadas exatas para este local. O incidente será registrado apenas com o nome do local.");
+        }
+      }
+
+      await addDoc(collection(db, 'incidents'), {
+        userId: user.uid,
+        type: incidentType,
+        description: incidentDescription,
+        latitude: lat,
+        longitude: lng,
+        locationName: currentLocation,
+        createdAt: new Date().toISOString()
+      });
+
+      alert('Incidente registrado com sucesso. Obrigado por contribuir para a segurança de todos.');
+      setIsIncidentModalOpen(false);
+      setIncidentDescription('');
+      setIncidentType('Outros');
+    } catch (error) {
+      console.error('Error reporting incident:', error);
+      alert('Erro ao registrar incidente. Tente novamente.');
+    } finally {
+      setIsSubmittingIncident(false);
     }
   };
 
@@ -451,7 +516,7 @@ const HomeScreen: React.FC<HomeProps> = ({ setActiveTab }) => {
                 </div>
               </div>
               <p className="text-pergaminho font-bold text-sm truncate leading-tight">
-                {locationStatus === 'success' ? currentLocation : 'São Paulo, SP, Brasil'}
+                {locationStatus === 'success' ? currentLocation : 'Ipiranga, São Paulo'}
               </p>
             </div>
           </div>
@@ -561,7 +626,116 @@ const HomeScreen: React.FC<HomeProps> = ({ setActiveTab }) => {
             </>
           )}
         </button>
+
+        <button
+          onClick={() => setIsIncidentModalOpen(true)}
+          className="w-full py-4 rounded-2xl font-black uppercase italic tracking-tighter flex items-center justify-center gap-3 transition-all bg-ouro/10 hover:bg-ouro/20 text-ouro border border-ouro/20"
+        >
+          <AlertTriangle size={20} />
+          Registrar Incidente
+        </button>
       </div>
+
+      {/* Incident Reporting Modal */}
+      <AnimatePresence>
+        {isIncidentModalOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-obsidiana/80 backdrop-blur-sm"
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-ardosia border border-ouro/20 rounded-3xl p-6 w-full max-w-md shadow-2xl"
+            >
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-lg font-black uppercase italic tracking-tighter text-ouro flex items-center gap-2">
+                  <AlertTriangle size={20} />
+                  Registrar Incidente
+                </h3>
+                <button onClick={() => setIsIncidentModalOpen(false)} className="p-2 text-pergaminho/40 hover:text-pergaminho transition-colors">
+                  <X size={20} />
+                </button>
+              </div>
+
+              <form onSubmit={handleReportIncident} className="space-y-4">
+                <div>
+                  <label className="block text-[10px] font-black uppercase tracking-widest text-ouro/60 mb-2">
+                    Tipo de Incidente
+                  </label>
+                  <select
+                    value={incidentType}
+                    onChange={(e) => setIncidentType(e.target.value as IncidentType)}
+                    className="w-full bg-obsidiana border border-ouro/10 rounded-xl py-3 px-4 focus:outline-none focus:border-ouro transition-colors text-sm text-pergaminho appearance-none"
+                    required
+                  >
+                    <option value="Crimes Contra o Patrimônio (Roubos e Furtos)">Crimes Contra o Patrimônio (Roubos e Furtos)</option>
+                    <option value="Roubo de Celular">Roubo de Celular</option>
+                    <option value="Furto por Distração (Pickpocketing)">Furto por Distração (Pickpocketing)</option>
+                    <option value="Arrastões">Arrastões</option>
+                    <option value="Violência ou Abordagens Agressivas">Violência ou Abordagens Agressivas</option>
+                    <option value="Assalto à Mão Armada">Assalto à Mão Armada</option>
+                    <option value="Violência contra transeuntes">Violência contra transeuntes</option>
+                    <option value="Roubo de veículos">Roubo de veículos</option>
+                    <option value="Riscos de Trânsito e Mobilidade">Riscos de Trânsito e Mobilidade</option>
+                    <option value="Atropelamentos">Atropelamentos</option>
+                    <option value="Acidentes de Bicicleta/Moto">Acidentes de Bicicleta/Moto</option>
+                    <option value="Rotas Obstruídas">Rotas Obstruídas</option>
+                    <option value="Iluminação Precária ou Inexistente">Iluminação Precária ou Inexistente</option>
+                    <option value="Área de risco para emergências naturais">Área de risco para emergências naturais</option>
+                    <option value="Desastres naturais">Desastres naturais</option>
+                    <option value="Incêndio">Incêndio</option>
+                    <option value="Atividade Suspeita">Atividade Suspeita</option>
+                    <option value="Ação de Gangues">Ação de Gangues</option>
+                    <option value="Risco alto de sequestro">Risco alto de sequestro</option>
+                    <option value="Assalto a veículos">Assalto a veículos</option>
+                    <option value="Outros">Outros</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-black uppercase tracking-widest text-ouro/60 mb-2">
+                    Descrição (Opcional)
+                  </label>
+                  <textarea
+                    value={incidentDescription}
+                    onChange={(e) => setIncidentDescription(e.target.value)}
+                    placeholder="Detalhes adicionais..."
+                    className="w-full bg-obsidiana border border-ouro/10 rounded-xl py-3 px-4 focus:outline-none focus:border-ouro transition-colors text-sm text-pergaminho placeholder:text-pergaminho/20 min-h-[100px] resize-none"
+                    maxLength={1000}
+                  />
+                </div>
+
+                <div className="bg-ouro/5 border border-ouro/10 rounded-xl p-3 flex items-start gap-3">
+                  <MapPin size={16} className="text-ouro mt-0.5 flex-shrink-0" />
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-ouro/60 mb-1">Localização do Registro</p>
+                    <p className="text-xs text-pergaminho leading-tight">{currentLocation || 'Nenhuma localização definida'}</p>
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={isSubmittingIncident || locationStatus !== 'success'}
+                  className="w-full py-4 rounded-xl font-black uppercase tracking-widest text-[10px] flex items-center justify-center gap-2 transition-all bg-ouro text-obsidiana hover:bg-ouro/90 disabled:opacity-50 disabled:cursor-not-allowed mt-6"
+                >
+                  {isSubmittingIncident ? (
+                    <>
+                      <Loader2 size={16} className="animate-spin" />
+                      Registrando...
+                    </>
+                  ) : (
+                    'Confirmar Registro'
+                  )}
+                </button>
+              </form>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Content Cards */}
       <div className="space-y-4">

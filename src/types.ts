@@ -56,6 +56,40 @@ export interface GuideContent {
   profile?: ProfileType;
 }
 
+export type IncidentType = 
+  | 'Crimes Contra o Patrimônio (Roubos e Furtos)'
+  | 'Roubo de Celular'
+  | 'Furto por Distração (Pickpocketing)'
+  | 'Arrastões'
+  | 'Violência ou Abordagens Agressivas'
+  | 'Assalto à Mão Armada'
+  | 'Violência contra transeuntes'
+  | 'Roubo de veículos'
+  | 'Riscos de Trânsito e Mobilidade'
+  | 'Atropelamentos'
+  | 'Acidentes de Bicicleta/Moto'
+  | 'Rotas Obstruídas'
+  | 'Iluminação Precária ou Inexistente'
+  | 'Área de risco para emergências naturais'
+  | 'Desastres naturais'
+  | 'Incêndio'
+  | 'Atividade Suspeita'
+  | 'Ação de Gangues'
+  | 'Risco alto de sequestro'
+  | 'Assalto a veículos'
+  | 'Outros';
+
+export interface Incident {
+  id: string;
+  userId: string;
+  type: IncidentType;
+  description: string;
+  latitude: number;
+  longitude: number;
+  locationName: string;
+  createdAt: string;
+}
+
 export interface JournalEntry {
   id: string;
   userId: string;

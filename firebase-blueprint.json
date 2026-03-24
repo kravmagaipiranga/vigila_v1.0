@@ -88,6 +88,44 @@
         "updatedAt": { "type": "string", "format": "date-time" }
       },
       "required": ["userId", "title", "content", "createdAt"]
+    },
+    "Incident": {
+      "title": "Incident",
+      "description": "User reported security incident",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "type": { "type": "string", "enum": [
+          "Crimes Contra o Patrimônio (Roubos e Furtos)",
+          "Roubo de Celular",
+          "Furto por Distração (Pickpocketing)",
+          "Arrastões",
+          "Violência ou Abordagens Agressivas",
+          "Assalto à Mão Armada",
+          "Violência contra transeuntes",
+          "Roubo de veículos",
+          "Riscos de Trânsito e Mobilidade",
+          "Atropelamentos",
+          "Acidentes de Bicicleta/Moto",
+          "Rotas Obstruídas",
+          "Iluminação Precária ou Inexistente",
+          "Área de risco para emergências naturais",
+          "Desastres naturais",
+          "Incêndio",
+          "Atividade Suspeita",
+          "Ação de Gangues",
+          "Risco alto de sequestro",
+          "Assalto a veículos",
+          "Outros"
+        ] },
+        "description": { "type": "string" },
+        "latitude": { "type": "number" },
+        "longitude": { "type": "number" },
+        "locationName": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "type", "latitude", "longitude", "locationName", "createdAt"]
     }
   },
   "firestore": {
@@ -118,6 +156,10 @@
     "/journal_entries/{entryId}": {
       "schema": "JournalEntry",
       "description": "User journal entries"
+    },
+    "/incidents/{incidentId}": {
+      "schema": "Incident",
+      "description": "User reported security incidents"
     }
   }
 }

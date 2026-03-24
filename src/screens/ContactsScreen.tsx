@@ -112,8 +112,10 @@ const ContactsScreen: React.FC = () => {
           title: 'Contato de Emergência',
           text: message,
         });
-      } catch (err) {
-        console.error('Erro ao compartilhar:', err);
+      } catch (err: any) {
+        if (err.name !== 'AbortError' && err.message !== 'Share canceled') {
+          console.error('Erro ao compartilhar:', err);
+        }
       }
     } else {
       // Fallback for browsers that don't support Web Share API
@@ -208,7 +210,7 @@ const ContactsScreen: React.FC = () => {
                     Importar do Telefone
                   </button>
 
-                  <form onSubmit={handleAddContact} className="space-y-4">
+                  <div className="space-y-4">
                     <div className="space-y-2">
                       <label className="text-[8px] font-black uppercase tracking-widest text-ouro/60 ml-1">Nome Completo</label>
                       <input
@@ -253,13 +255,14 @@ const ContactsScreen: React.FC = () => {
                         Cancelar
                       </button>
                       <button
-                        type="submit"
+                        type="button"
+                        onClick={handleAddContact}
                         className="flex-[2] bg-ouro hover:opacity-90 text-obsidiana font-black uppercase tracking-widest py-4 rounded-2xl transition-all"
                       >
                         Salvar
                       </button>
                     </div>
-                  </form>
+                  </div>
                 </div>
               </div>
             </motion.div>

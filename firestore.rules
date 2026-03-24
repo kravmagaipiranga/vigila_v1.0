@@ -145,6 +145,39 @@ service cloud.firestore {
              (!('updatedAt' in data) || isValidDateString(data.updatedAt));
     }
 
+    function isValidIncident(data) {
+      return data.keys().hasAll(['userId', 'type', 'latitude', 'longitude', 'locationName', 'createdAt']) &&
+             data.userId is string &&
+             data.type in [
+               'Crimes Contra o Patrimônio (Roubos e Furtos)',
+               'Roubo de Celular',
+               'Furto por Distração (Pickpocketing)',
+               'Arrastões',
+               'Violência ou Abordagens Agressivas',
+               'Assalto à Mão Armada',
+               'Violência contra transeuntes',
+               'Roubo de veículos',
+               'Riscos de Trânsito e Mobilidade',
+               'Atropelamentos',
+               'Acidentes de Bicicleta/Moto',
+               'Rotas Obstruídas',
+               'Iluminação Precária ou Inexistente',
+               'Área de risco para emergências naturais',
+               'Desastres naturais',
+               'Incêndio',
+               'Atividade Suspeita',
+               'Ação de Gangues',
+               'Risco alto de sequestro',
+               'Assalto a veículos',
+               'Outros'
+             ] &&
+             (!('description' in data) || (data.description is string && data.description.size() <= 1000)) &&
+             data.latitude is number &&
+             data.longitude is number &&
+             data.locationName is string && data.locationName.size() <= 500 &&
+             isValidDateString(data.createdAt);
+    }
+
     // ===============================================================
     // Rules
     // ===============================================================
@@ -221,6 +254,20 @@ service cloud.firestore {
                     (request.resource.data.userId == request.auth.uid || isAdmin());
       
       allow update: if isAuthenticated() && isValidJournalEntry(request.resource.data) && 
+                    (resource.data.userId == request.auth.uid || isAdmin()) &&
+                    request.resource.data.createdAt == resource.data.createdAt;
+      
+      allow delete: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
+    }
+
+    match /incidents/{incidentId} {
+      // Incidents are public read for authenticated users
+      allow read: if isAuthenticated();
+      
+      allow create: if isAuthenticated() && isValidIncident(request.resource.data) && 
+                    (request.resource.data.userId == request.auth.uid || isAdmin());
+      
+      allow update: if isAuthenticated() && isValidIncident(request.resource.data) && 
                     (resource.data.userId == request.auth.uid || isAdmin()) &&
                     request.resource.data.createdAt == resource.data.createdAt;
       

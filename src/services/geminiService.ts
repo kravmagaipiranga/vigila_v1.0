@@ -54,7 +54,10 @@ export async function reverseGeocode(lat: number, lng: number): Promise<string> 
   try {
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash",
-      contents: `Identify the CITY, STATE, and COUNTRY at coordinates ${lat}, ${lng}. Return the information in the format "City, State, Country". If any of these items are not identified, show only the ones that were (e.g., "State, Country" or just "Country"). Return ONLY this string, no extra text.`,
+      contents: `Identify the NEIGHBORHOOD (BAIRRO), CITY (CIDADE), and STATE (ESTADO) at coordinates ${lat}, ${lng}. 
+      Return the information in the format "Neighborhood, City". 
+      If the neighborhood is not identified or unavailable, return "City, State". 
+      Return ONLY this string, no extra text.`,
       config: {
         tools: [{ googleMaps: {} }],
         toolConfig: {
@@ -74,13 +77,13 @@ export async function reverseGeocode(lat: number, lng: number): Promise<string> 
       const result = text.trim().split('\n')[0];
       // If the result still looks like coordinates (contains only numbers, dots, commas and spaces)
       if (/^[-+]?([1-8]?\d(\.\d+)?|90(\.0+)?),\s*[-+]?(180(\.0+)?|((1[0-7]\d)|([1-9]?\d))(\.\d+)?)$/.test(result)) {
-        return "São Paulo, SP, Brasil"; // Fallback with a generic location if needed
+        return "Ipiranga, São Paulo"; // Fallback with a generic location if needed
       }
       return result;
     }
-    return "Brasil";
+    return "São Paulo, SP";
   } catch (error) {
     console.error("Error reverse geocoding with Gemini:", error);
-    return "Brasil";
+    return "São Paulo, SP";
   }
 }

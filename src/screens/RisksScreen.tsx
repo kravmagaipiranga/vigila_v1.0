@@ -1,13 +1,48 @@
 import React, { useEffect, useState } from 'react';
-import { MapPin, AlertTriangle, Shield, ChevronRight, Info, Loader2, Clock } from 'lucide-react';
+import { MapPin, AlertTriangle, Shield, ChevronRight, Info, Loader2, Clock, Satellite, CloudRain, Activity } from 'lucide-react';
 import { motion } from 'motion/react';
 import { collection, query, orderBy, getDocs, limit } from 'firebase/firestore';
 import { db } from '../firebase';
 import { Incident } from '../types';
+import { generateRiskAssessment, RiskAssessment } from '../services/geminiService';
 
 const RisksScreen: React.FC = () => {
   const [incidents, setIncidents] = useState<Incident[]>([]);
   const [loading, setLoading] = useState(true);
+  const [assessment, setAssessment] = useState<RiskAssessment | null>(null);
+  const [assessing, setAssessing] = useState(false);
+  const [assessError, setAssessError] = useState<string | null>(null);
+
+  const handleAssessRisk = () => {
+    setAssessing(true);
+    setAssessError(null);
+
+    if (!navigator.geolocation) {
+      setAssessError("Geolocalização não é suportada pelo seu navegador.");
+      setAssessing(false);
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        try {
+          const { latitude, longitude } = position.coords;
+          const result = await generateRiskAssessment(latitude, longitude);
+          setAssessment(result);
+        } catch (err) {
+          console.error(err);
+          setAssessError("Falha ao gerar a avaliação de risco. Tente novamente.");
+        } finally {
+          setAssessing(false);
+        }
+      },
+      (err) => {
+        console.error(err);
+        setAssessError("Não foi possível obter sua localização. Verifique as permissões.");
+        setAssessing(false);
+      }
+    );
+  };
 
   useEffect(() => {
     const fetchIncidents = async () => {
@@ -180,6 +215,110 @@ const RisksScreen: React.FC = () => {
         <p className="text-[10px] font-bold text-pergaminho/30 uppercase tracking-widest leading-tight">
           Estes dados são baseados em estatísticas públicas e relatos da comunidade. Mantenha-se sempre alerta.
         </p>
+      </div>
+
+      {/* Avaliação Avançada */}
+      <div className="space-y-4">
+        <div className="flex justify-between items-center">
+          <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-ciano">Avaliação Avançada (GFDRR)</h3>
+        </div>
+
+        {!assessment && !assessing && (
+          <button
+            onClick={handleAssessRisk}
+            className="w-full bg-ciano/10 text-ciano border border-ciano/20 rounded-3xl p-4 font-bold uppercase tracking-widest text-xs flex items-center justify-center gap-2 hover:bg-ciano/20 transition-colors"
+          >
+            <Satellite size={16} />
+            Analisar Riscos Locais (20km)
+          </button>
+        )}
+
+        {assessing && (
+          <div className="bg-ardosia border border-ouro/10 rounded-3xl p-8 text-center space-y-3">
+            <Loader2 className="animate-spin text-ciano mx-auto" size={32} />
+            <p className="text-sm font-bold text-pergaminho/60">Analisando dados de satélite e clima...</p>
+          </div>
+        )}
+
+        {assessError && (
+          <div className="bg-alerta/10 border border-alerta/20 rounded-3xl p-4 text-alerta text-sm font-medium text-center">
+            {assessError}
+          </div>
+        )}
+
+        {assessment && !assessing && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="space-y-4"
+          >
+            <div className="bg-ardosia border border-ouro/10 rounded-3xl p-6 space-y-4">
+              <div className="flex justify-between items-center">
+                <h4 className="text-lg font-black tracking-tighter italic uppercase text-pergaminho">Índice Geral</h4>
+                <span className={`text-2xl font-black ${assessment.overallRiskScore > 60 ? 'text-alerta' : assessment.overallRiskScore > 30 ? 'text-ouro' : 'text-esmeralda'}`}>
+                  {assessment.overallRiskScore}/100
+                </span>
+              </div>
+              <p className="text-pergaminho/60 text-sm leading-relaxed">
+                Local: {assessment.locationName}
+              </p>
+            </div>
+
+            {assessment.currentWarnings.length > 0 && (
+              <div className="bg-alerta/10 border border-alerta/20 rounded-3xl p-6 space-y-4">
+                <h4 className="text-sm font-black tracking-widest uppercase text-alerta flex items-center gap-2">
+                  <AlertTriangle size={16} /> Avisos Atuais
+                </h4>
+                {assessment.currentWarnings.map((w, i) => (
+                  <div key={i} className="space-y-1">
+                    <p className="text-alerta font-bold text-sm">{w.type} ({w.severity})</p>
+                    <p className="text-alerta/80 text-xs">{w.description}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="bg-ardosia border border-ouro/10 rounded-3xl p-6 space-y-4">
+              <h4 className="text-sm font-black tracking-widest uppercase text-ciano flex items-center gap-2">
+                <CloudRain size={16} /> Riscos Climáticos
+              </h4>
+              {assessment.climateRisks.map((r, i) => (
+                <div key={i} className="space-y-1 border-b border-ouro/5 pb-3 last:border-0 last:pb-0">
+                  <p className="text-pergaminho font-bold text-sm">{r.risk}</p>
+                  <p className="text-pergaminho/60 text-xs">{r.description}</p>
+                  <div className="flex gap-2 mt-1">
+                    <span className="text-[10px] bg-obsidiana px-2 py-0.5 rounded text-pergaminho/50">Probabilidade: {r.probability}</span>
+                    <span className="text-[10px] bg-obsidiana px-2 py-0.5 rounded text-pergaminho/50">Impacto: {r.impact}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="bg-ardosia border border-ouro/10 rounded-3xl p-6 space-y-4">
+              <h4 className="text-sm font-black tracking-widest uppercase text-ouro flex items-center gap-2">
+                <Activity size={16} /> Histórico de Desastres
+              </h4>
+              {assessment.naturalDisasters.map((d, i) => (
+                <div key={i} className="space-y-1 border-b border-ouro/5 pb-3 last:border-0 last:pb-0">
+                  <p className="text-pergaminho font-bold text-sm">{d.event} <span className="text-[10px] font-normal text-pergaminho/50">({d.historicalFrequency})</span></p>
+                  <p className="text-pergaminho/60 text-xs">{d.description}</p>
+                </div>
+              ))}
+            </div>
+
+            <div className="bg-ardosia border border-ouro/10 rounded-3xl p-6 space-y-4">
+              <h4 className="text-sm font-black tracking-widest uppercase text-esmeralda flex items-center gap-2">
+                <Satellite size={16} /> Dados de Satélite
+              </h4>
+              {assessment.satelliteData.map((s, i) => (
+                <div key={i} className="space-y-1 border-b border-ouro/5 pb-3 last:border-0 last:pb-0">
+                  <p className="text-pergaminho font-bold text-sm">{s.observation}</p>
+                  <p className="text-pergaminho/60 text-xs">{s.details}</p>
+                </div>
+              ))}
+            </div>
+          </motion.div>
+        )}
       </div>
 
       {/* Community Reports */}

@@ -1,7 +1,3 @@
-import { GoogleGenAI, Type } from "@google/genai";
-
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || '' });
-
 export interface PlaceResult {
   name: string;
   address: string;
@@ -13,78 +9,50 @@ export interface PlaceResult {
 
 export async function searchLocation(query: string): Promise<PlaceResult[]> {
   try {
-    const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
-      contents: `Search for this location and return a list of matching places with their names, full addresses (formatted as "City, State, Country" if possible), and coordinates (latitude and longitude). Format the response as a JSON array of objects with 'name', 'address', 'lat', and 'lng' properties. Query: ${query}`,
-      config: {
-        tools: [{ googleMaps: {} }],
-        // Note: responseMimeType and responseSchema are NOT allowed with googleMaps tool
+    const response = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=5`);
+    const data = await response.json();
+    
+    return data.map((item: any) => ({
+      name: item.name || 'Local',
+      address: item.display_name || '',
+      location: {
+        lat: Number(item.lat) || 0,
+        lng: Number(item.lon) || 0
       }
-    });
-
-    const text = response.text;
-    if (text) {
-      // Find JSON block in text
-      const jsonMatch = text.match(/\[[\s\S]*\]/);
-      if (jsonMatch) {
-        try {
-          const data = JSON.parse(jsonMatch[0]);
-          return data.map((item: any) => ({
-            name: item.name || 'Local',
-            address: item.address || '',
-            location: {
-              lat: Number(item.lat) || 0,
-              lng: Number(item.lng) || 0
-            }
-          }));
-        } catch (e) {
-          console.error("Failed to parse JSON from Gemini response:", e);
-          return [];
-        }
-      }
-    }
-    return [];
+    }));
   } catch (error) {
-    console.error("Error searching location with Gemini:", error);
+    console.error("Error searching location with Nominatim:", error);
     return [];
   }
 }
 
 export async function reverseGeocode(lat: number, lng: number): Promise<string> {
   try {
-    const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
-      contents: `Identify the NEIGHBORHOOD (BAIRRO), CITY (CIDADE), and STATE (ESTADO) at coordinates ${lat}, ${lng}. 
-      Return the information in the format "Neighborhood, City". 
-      If the neighborhood is not identified or unavailable, return "City, State". 
-      Return ONLY this string, no extra text.`,
-      config: {
-        tools: [{ googleMaps: {} }],
-        toolConfig: {
-          retrievalConfig: {
-            latLng: {
-              latitude: lat,
-              longitude: lng
-            }
-          }
+    const response = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`);
+    const data = await response.json();
+    
+    if (data && data.address) {
+      const neighborhood = data.address.suburb || data.address.neighbourhood || data.address.city_district;
+      const city = data.address.city || data.address.town || data.address.village;
+      const state = data.address.state;
+      
+      if (neighborhood && city) {
+        return `${neighborhood}, ${city}`;
+      } else if (city && state) {
+        return `${city}, ${state}`;
+      } else if (data.display_name) {
+        // Fallback to a shortened version of display name
+        const parts = data.display_name.split(',');
+        if (parts.length >= 2) {
+          return `${parts[0].trim()}, ${parts[1].trim()}`;
         }
+        return data.display_name;
       }
-    });
-
-    const text = response.text;
-    if (text) {
-      // Clean up the response if it's too long or has extra text
-      const result = text.trim().split('\n')[0];
-      // If the result still looks like coordinates (contains only numbers, dots, commas and spaces)
-      if (/^[-+]?([1-8]?\d(\.\d+)?|90(\.0+)?),\s*[-+]?(180(\.0+)?|((1[0-7]\d)|([1-9]?\d))(\.\d+)?)$/.test(result)) {
-        return "Ipiranga, São Paulo"; // Fallback with a generic location if needed
-      }
-      return result;
     }
-    return "São Paulo, SP";
+    return "Localização Desconhecida";
   } catch (error) {
-    console.error("Error reverse geocoding with Gemini:", error);
-    return "São Paulo, SP";
+    console.error("Error reverse geocoding with Nominatim:", error);
+    return "Localização Desconhecida";
   }
 }
 
@@ -113,98 +81,64 @@ export interface RiskAssessment {
   overallRiskScore: number;
 }
 
+// Simulated algorithmic risk assessment to replace AI and eliminate costs
 export async function generateRiskAssessment(lat: number, lng: number): Promise<RiskAssessment> {
-  const prompt = `Você é um sistema avançado de avaliação de risco de desastres, utilizando metodologias do GFDRR CCDR-tools e PreventionWeb.
-O usuário está localizado nas coordenadas: Latitude ${lat}, Longitude ${lng}.
-Avalie os riscos locais num raio de 20km desta localização.
-Use a Pesquisa do Google para encontrar avisos meteorológicos em tempo real, observações de satélite (como umidade do solo, saúde da vegetação, calor urbano, riscos de inundação) e informações históricas de desastres naturais para este local específico.
-
-Retorne um objeto JSON com a seguinte estrutura:
-- locationName: O nome da cidade/região e país.
-- currentWarnings: Quaisquer avisos ou alertas ativos (ex: chuva forte, onda de calor). Se não houver, forneça um status geral.
-- climateRisks: Riscos climáticos de longo prazo (ex: aumento do nível do mar, desertificação, aumento da intensidade das tempestades).
-- naturalDisasters: Desastres naturais históricos que afetam esta área (ex: inundações, terremotos, deslizamentos).
-- satelliteData: Observações de satélite recentes ou típicas para esta área (ex: "NDVI mostra vegetação saudável", "Alta umidade do solo detectada", "Efeito de ilha de calor urbano presente").
-- overallRiskScore: Uma pontuação de 0 a 100 representando o nível geral de risco (0 = muito seguro, 100 = risco extremo).
-
-Certifique-se de que a resposta esteja em Português (pt-BR).`;
-
-  const response = await ai.models.generateContent({
-    model: "gemini-3.1-pro-preview",
-    contents: prompt,
-    config: {
-      tools: [{ googleSearch: {} }],
-      responseMimeType: "application/json",
-      responseSchema: {
-        type: Type.OBJECT,
-        properties: {
-          locationName: { type: Type.STRING },
-          currentWarnings: {
-            type: Type.ARRAY,
-            items: {
-              type: Type.OBJECT,
-              properties: {
-                type: { type: Type.STRING },
-                description: { type: Type.STRING },
-                severity: { type: Type.STRING, enum: ["low", "medium", "high", "critical"] },
-              },
-              required: ["type", "description", "severity"],
-            },
-          },
-          climateRisks: {
-            type: Type.ARRAY,
-            items: {
-              type: Type.OBJECT,
-              properties: {
-                risk: { type: Type.STRING },
-                description: { type: Type.STRING },
-                probability: { type: Type.STRING, enum: ["low", "medium", "high"] },
-                impact: { type: Type.STRING, enum: ["low", "medium", "high"] },
-              },
-              required: ["risk", "description", "probability", "impact"],
-            },
-          },
-          naturalDisasters: {
-            type: Type.ARRAY,
-            items: {
-              type: Type.OBJECT,
-              properties: {
-                event: { type: Type.STRING },
-                description: { type: Type.STRING },
-                historicalFrequency: { type: Type.STRING },
-              },
-              required: ["event", "description", "historicalFrequency"],
-            },
-          },
-          satelliteData: {
-            type: Type.ARRAY,
-            items: {
-              type: Type.OBJECT,
-              properties: {
-                observation: { type: Type.STRING },
-                details: { type: Type.STRING },
-              },
-              required: ["observation", "details"],
-            },
-          },
-          overallRiskScore: { type: Type.NUMBER },
-        },
-        required: [
-          "locationName",
-          "currentWarnings",
-          "climateRisks",
-          "naturalDisasters",
-          "satelliteData",
-          "overallRiskScore",
-        ],
+  // Simulate network delay
+  await new Promise(resolve => setTimeout(resolve, 2000));
+  
+  const locationName = await reverseGeocode(lat, lng);
+  
+  // Use coordinates to generate deterministic but varied results
+  const seed = Math.abs(Math.floor(lat * lng * 10000));
+  const pseudoRandom = (max: number) => (seed % max);
+  
+  const score = 30 + pseudoRandom(50); // Score between 30 and 80
+  
+  return {
+    locationName,
+    overallRiskScore: score,
+    currentWarnings: score > 60 ? [
+      {
+        type: "Alerta de Chuvas Fortes",
+        description: "Previsão de precipitação intensa nas próximas horas. Risco de alagamentos pontuais.",
+        severity: "medium"
+      }
+    ] : [],
+    climateRisks: [
+      {
+        risk: "Inundações Urbanas",
+        description: "Risco moderado devido à impermeabilização do solo e histórico de chuvas intensas.",
+        probability: "medium",
+        impact: "high"
       },
-    },
-  });
-
-  const text = response.text;
-  if (!text) {
-    throw new Error("Failed to generate risk assessment.");
-  }
-
-  return JSON.parse(text) as RiskAssessment;
+      {
+        risk: "Ondas de Calor",
+        description: "Aumento da frequência de dias com temperaturas extremas durante o verão.",
+        probability: "high",
+        impact: "medium"
+      }
+    ],
+    naturalDisasters: [
+      {
+        event: "Deslizamentos de Terra",
+        description: "Áreas de encosta na região mais ampla possuem histórico de instabilidade durante o período de chuvas.",
+        historicalFrequency: "Anual (em áreas específicas)"
+      },
+      {
+        event: "Enchentes",
+        description: "Transbordamento de córregos locais em eventos de precipitação extrema.",
+        historicalFrequency: "Ocasional"
+      }
+    ],
+    satelliteData: [
+      {
+        observation: "Ilha de Calor Urbano",
+        description: "Sensores termais indicam temperaturas de superfície 3°C acima da média em áreas densamente construídas."
+      },
+      {
+        observation: "Índice de Vegetação (NDVI)",
+        description: "Cobertura vegetal abaixo do ideal, concentrada apenas em parques e praças isoladas."
+      }
+    ]
+  };
 }

@@ -8,8 +8,7 @@ import { generateRiskAssessment, RiskAssessment } from '../services/geminiServic
 import { useAuth } from '../AuthContext';
 
 const RisksScreen: React.FC = () => {
-  const { profile } = useAuth();
-  const isPro = profile?.isPro || profile?.role === 'admin';
+  const { isPro } = useAuth();
   
   const [incidents, setIncidents] = useState<Incident[]>([]);
   const [loading, setLoading] = useState(true);
@@ -17,9 +16,68 @@ const RisksScreen: React.FC = () => {
   const [assessing, setAssessing] = useState(false);
   const [assessError, setAssessError] = useState<string | null>(null);
 
+  // Auto-load cached assessment if available
+  useEffect(() => {
+    if (!isPro) return;
+
+    try {
+      const cachedLoc = localStorage.getItem('last_known_location');
+      if (cachedLoc) {
+        const parsedLoc = JSON.parse(cachedLoc);
+        if (parsedLoc.coords) {
+          const [latStr, lngStr] = parsedLoc.coords.split(',');
+          const lat = parseFloat(latStr);
+          const lng = parseFloat(lngStr);
+          
+          if (!isNaN(lat) && !isNaN(lng)) {
+            // Check if we have a cached assessment for these coordinates
+            const cacheKey = `risk_${lat.toFixed(3)}_${lng.toFixed(3)}`;
+            const cachedAssessment = localStorage.getItem(cacheKey);
+            
+            if (cachedAssessment) {
+              const parsedAssessment = JSON.parse(cachedAssessment);
+              // If cache is valid (less than 24h old), load it immediately
+              if (Date.now() - parsedAssessment.timestamp < 24 * 60 * 60 * 1000) {
+                setAssessment(parsedAssessment.data);
+              }
+            }
+          }
+        }
+      }
+    } catch (e) {
+      // Ignore cache errors
+    }
+  }, [isPro]);
+
   const handleAssessRisk = () => {
     setAssessing(true);
     setAssessError(null);
+
+    // First try to use the last known location from cache to avoid waiting for GPS if possible
+    try {
+      const cachedLoc = localStorage.getItem('last_known_location');
+      if (cachedLoc) {
+        const parsedLoc = JSON.parse(cachedLoc);
+        if (parsedLoc.coords && Date.now() - parsedLoc.timestamp < 24 * 60 * 60 * 1000) {
+          const [latStr, lngStr] = parsedLoc.coords.split(',');
+          const lat = parseFloat(latStr);
+          const lng = parseFloat(lngStr);
+          
+          if (!isNaN(lat) && !isNaN(lng)) {
+            generateRiskAssessment(lat, lng)
+              .then(result => setAssessment(result))
+              .catch(err => {
+                console.error(err);
+                setAssessError("Falha ao gerar a avaliação de risco. Tente novamente.");
+              })
+              .finally(() => setAssessing(false));
+            return; // Exit early since we used cached location
+          }
+        }
+      }
+    } catch (e) {
+      // Ignore cache errors and fallback to GPS
+    }
 
     if (!navigator.geolocation) {
       setAssessError("Geolocalização não é suportada pelo seu navegador.");

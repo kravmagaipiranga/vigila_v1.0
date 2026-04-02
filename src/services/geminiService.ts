@@ -7,12 +7,44 @@ export interface PlaceResult {
   };
 }
 
+// Helper functions for caching
+const getCache = <T>(key: string, maxAgeMs: number): T | null => {
+  try {
+    const cached = localStorage.getItem(key);
+    if (!cached) return null;
+    
+    const parsed = JSON.parse(cached);
+    if (Date.now() - parsed.timestamp > maxAgeMs) {
+      localStorage.removeItem(key);
+      return null;
+    }
+    return parsed.data as T;
+  } catch (e) {
+    return null;
+  }
+};
+
+const setCache = <T>(key: string, data: T): void => {
+  try {
+    localStorage.setItem(key, JSON.stringify({
+      timestamp: Date.now(),
+      data
+    }));
+  } catch (e) {
+    // Ignore quota errors
+  }
+};
+
 export async function searchLocation(query: string): Promise<PlaceResult[]> {
+  const cacheKey = `search_${query.toLowerCase().trim()}`;
+  const cached = getCache<PlaceResult[]>(cacheKey, 7 * 24 * 60 * 60 * 1000); // 7 days
+  if (cached) return cached;
+
   try {
     const response = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=5`);
     const data = await response.json();
     
-    return data.map((item: any) => ({
+    const results = data.map((item: any) => ({
       name: item.name || 'Local',
       address: item.display_name || '',
       location: {
@@ -20,6 +52,11 @@ export async function searchLocation(query: string): Promise<PlaceResult[]> {
         lng: Number(item.lon) || 0
       }
     }));
+
+    if (results.length > 0) {
+      setCache(cacheKey, results);
+    }
+    return results;
   } catch (error) {
     console.error("Error searching location with Nominatim:", error);
     return [];
@@ -27,29 +64,39 @@ export async function searchLocation(query: string): Promise<PlaceResult[]> {
 }
 
 export async function reverseGeocode(lat: number, lng: number): Promise<string> {
+  const cacheKey = `geocode_${lat.toFixed(3)}_${lng.toFixed(3)}`;
+  const cached = getCache<string>(cacheKey, 7 * 24 * 60 * 60 * 1000); // 7 days
+  if (cached) return cached;
+
   try {
     const response = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`);
     const data = await response.json();
     
+    let result = "Localização Desconhecida";
     if (data && data.address) {
       const neighborhood = data.address.suburb || data.address.neighbourhood || data.address.city_district;
       const city = data.address.city || data.address.town || data.address.village;
       const state = data.address.state;
       
       if (neighborhood && city) {
-        return `${neighborhood}, ${city}`;
+        result = `${neighborhood}, ${city}`;
       } else if (city && state) {
-        return `${city}, ${state}`;
+        result = `${city}, ${state}`;
       } else if (data.display_name) {
         // Fallback to a shortened version of display name
         const parts = data.display_name.split(',');
         if (parts.length >= 2) {
-          return `${parts[0].trim()}, ${parts[1].trim()}`;
+          result = `${parts[0].trim()}, ${parts[1].trim()}`;
+        } else {
+          result = data.display_name;
         }
-        return data.display_name;
       }
     }
-    return "Localização Desconhecida";
+    
+    if (result !== "Localização Desconhecida") {
+      setCache(cacheKey, result);
+    }
+    return result;
   } catch (error) {
     console.error("Error reverse geocoding with Nominatim:", error);
     return "Localização Desconhecida";
@@ -83,7 +130,11 @@ export interface RiskAssessment {
 
 // Simulated algorithmic risk assessment to replace AI and eliminate costs
 export async function generateRiskAssessment(lat: number, lng: number): Promise<RiskAssessment> {
-  // Simulate network delay
+  const cacheKey = `risk_${lat.toFixed(3)}_${lng.toFixed(3)}`;
+  const cached = getCache<RiskAssessment>(cacheKey, 24 * 60 * 60 * 1000); // 24 hours
+  if (cached) return cached;
+
+  // Simulate network delay only if not cached
   await new Promise(resolve => setTimeout(resolve, 2000));
   
   const locationName = await reverseGeocode(lat, lng);
@@ -94,7 +145,7 @@ export async function generateRiskAssessment(lat: number, lng: number): Promise<
   
   const score = 30 + pseudoRandom(50); // Score between 30 and 80
   
-  return {
+  const assessment: RiskAssessment = {
     locationName,
     overallRiskScore: score,
     currentWarnings: score > 60 ? [
@@ -141,4 +192,7 @@ export async function generateRiskAssessment(lat: number, lng: number): Promise<
       }
     ]
   };
+
+  setCache(cacheKey, assessment);
+  return assessment;
 }

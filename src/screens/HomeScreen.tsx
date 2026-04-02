@@ -6,13 +6,14 @@ import { collection, query, where, getDocs, addDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { Contact, IncidentType } from '../types';
 import { searchLocation, reverseGeocode, PlaceResult } from '../services/geminiService';
+import MapScreen from './MapScreen';
 
 interface HomeProps {
   setActiveTab: (tab: string) => void;
 }
 
 const HomeScreen: React.FC<HomeProps> = ({ setActiveTab }) => {
-  const { user, profile } = useAuth();
+  const { user, profile, isAdmin, isPro } = useAuth();
   const [sendingAlert, setSendingAlert] = useState(false);
   const [locationStatus, setLocationStatus] = useState<'idle' | 'fetching' | 'success' | 'error'>('idle');
   const [currentLocation, setCurrentLocation] = useState<string | null>(null);
@@ -23,6 +24,37 @@ const HomeScreen: React.FC<HomeProps> = ({ setActiveTab }) => {
   const [searchResults, setSearchResults] = useState<PlaceResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [isSelectionInProgress, setIsSelectionInProgress] = useState(false);
+  const [showMapScreen, setShowMapScreen] = useState(false);
+
+  // Load cached location on mount
+  useEffect(() => {
+    try {
+      const cachedLoc = localStorage.getItem('last_known_location');
+      if (cachedLoc) {
+        const parsed = JSON.parse(cachedLoc);
+        // Only use cache if it's less than 24 hours old
+        if (Date.now() - parsed.timestamp < 24 * 60 * 60 * 1000) {
+          setCurrentCoords(parsed.coords);
+          setCurrentLocation(parsed.address);
+          setLocationStatus('success');
+        }
+      }
+    } catch (e) {
+      // Ignore cache errors
+    }
+  }, []);
+
+  const saveLocationCache = (coords: string, address: string) => {
+    try {
+      localStorage.setItem('last_known_location', JSON.stringify({
+        timestamp: Date.now(),
+        coords,
+        address
+      }));
+    } catch (e) {
+      // Ignore quota errors
+    }
+  };
 
   // Autocomplete logic for manual location
   useEffect(() => {
@@ -60,10 +92,8 @@ const HomeScreen: React.FC<HomeProps> = ({ setActiveTab }) => {
   const [incidentDescription, setIncidentDescription] = useState('');
   const [isSubmittingIncident, setIsSubmittingIncident] = useState(false);
 
-  const isAdmin = user?.email === 'kravmagaipiranga@gmail.com';
-  const isPro = isAdmin || (profile?.isPro && (!profile.proExpirationDate || new Date(profile.proExpirationDate) > new Date()));
-  const isExpired = profile ? (!profile.isPro && profile.trialEndsAt && new Date() > new Date(profile.trialEndsAt)) : false;
-  const isTrial = profile ? (!profile.isPro && profile.trialEndsAt && new Date() <= new Date(profile.trialEndsAt)) : false;
+  const isExpired = !isAdmin && profile ? (!profile.isPro && profile.trialEndsAt && new Date() > new Date(profile.trialEndsAt)) : false;
+  const isTrial = !isAdmin && profile ? (!profile.isPro && profile.trialEndsAt && new Date() <= new Date(profile.trialEndsAt)) : false;
   const isLifetime = isAdmin || profile?.planType === 'vitalício';
   
   const getRemainingTime = () => {
@@ -169,13 +199,17 @@ const HomeScreen: React.FC<HomeProps> = ({ setActiveTab }) => {
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
 
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(440, ctx.currentTime);
+      // Usar onda quadrada (square) soa muito mais alto e agressivo que a senoidal (sine)
+      osc.type = 'square';
+      // Frequência base mais alta (perfurante para o ouvido humano)
+      osc.frequency.setValueAtTime(800, ctx.currentTime);
       
       const lfo = ctx.createOscillator();
       const lfoGain = ctx.createGain();
-      lfo.frequency.value = 2;
-      lfoGain.gain.value = 440;
+      // Alterna a sirene mais rápido (4 vezes por segundo)
+      lfo.frequency.value = 4;
+      // Varia a frequência em 400Hz (vai de 800Hz a 1200Hz)
+      lfoGain.gain.value = 400;
       
       lfo.connect(lfoGain);
       lfoGain.connect(osc.frequency);
@@ -183,6 +217,7 @@ const HomeScreen: React.FC<HomeProps> = ({ setActiveTab }) => {
       osc.connect(gain);
       gain.connect(ctx.destination);
       
+      // Volume no máximo permitido pelo navegador (1.0)
       gain.gain.setValueAtTime(0, ctx.currentTime);
       gain.gain.linearRampToValueAtTime(1, ctx.currentTime + 0.1);
 
@@ -226,12 +261,14 @@ const HomeScreen: React.FC<HomeProps> = ({ setActiveTab }) => {
       });
 
       const { latitude, longitude } = position.coords;
-      setCurrentCoords(`${latitude.toFixed(4)}, ${longitude.toFixed(4)}`);
+      const coordsStr = `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`;
+      setCurrentCoords(coordsStr);
       
       // Reverse geocode to get human-readable address
       const address = await reverseGeocode(latitude, longitude);
       setCurrentLocation(address);
       setLocationStatus('success');
+      saveLocationCache(coordsStr, address);
     } catch (error: any) {
       console.error('Error getting location:', error);
       setLocationStatus('error');
@@ -282,6 +319,7 @@ const HomeScreen: React.FC<HomeProps> = ({ setActiveTab }) => {
         
         mapsUrl = `https://www.google.com/maps?q=${latitude},${longitude} (${address})`;
         setLocationStatus('success');
+        saveLocationCache(coordsStr, address);
       } catch (error: any) {
         console.error('Error getting location:', error);
         setLocationStatus('error');
@@ -351,21 +389,25 @@ const HomeScreen: React.FC<HomeProps> = ({ setActiveTab }) => {
 
   const selectLocation = (place: PlaceResult) => {
     setIsSelectionInProgress(true);
-    setCurrentCoords(`${place.location.lat.toFixed(4)}, ${place.location.lng.toFixed(4)}`);
+    const coordsStr = `${place.location.lat.toFixed(4)}, ${place.location.lng.toFixed(4)}`;
+    setCurrentCoords(coordsStr);
     setCurrentLocation(place.address || place.name);
     setManualLocationInput(place.address || place.name);
     setLocationStatus('success');
     setIsManualLocationModalOpen(false);
     setSearchResults([]);
+    saveLocationCache(coordsStr, place.address || place.name);
   };
 
   const handleManualLocationSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (manualLocationInput.trim()) {
-      setCurrentLocation(manualLocationInput.trim());
+      const address = manualLocationInput.trim();
+      setCurrentLocation(address);
       setCurrentCoords(''); // Clear coordinates if manually entered text
       setLocationStatus('success');
       setIsManualLocationModalOpen(false);
+      saveLocationCache('', address);
     }
   };
 
@@ -424,6 +466,10 @@ const HomeScreen: React.FC<HomeProps> = ({ setActiveTab }) => {
       setIsSubmittingIncident(false);
     }
   };
+
+  if (showMapScreen) {
+    return <MapScreen onBack={() => setShowMapScreen(false)} />;
+  }
 
   return (
     <div className="space-y-8">
@@ -638,6 +684,32 @@ const HomeScreen: React.FC<HomeProps> = ({ setActiveTab }) => {
             </motion.div>
           )}
         </AnimatePresence>
+
+        {/* Botão de Mapa Offline (PRO) */}
+        <button
+          onClick={() => {
+            if (!isPro) {
+              alert('O Mapa Offline é um recurso exclusivo para assinantes PRO.');
+              return;
+            }
+            setShowMapScreen(true);
+          }}
+          className="w-full flex items-center justify-between p-3 bg-obsidiana/50 border border-ouro/5 rounded-xl hover:bg-obsidiana hover:border-ouro/20 transition-all group"
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-ciano/10 text-ciano flex items-center justify-center group-hover:scale-110 transition-transform">
+              <MapPin size={16} />
+            </div>
+            <div className="text-left">
+              <h4 className="text-[10px] font-black uppercase tracking-widest text-pergaminho flex items-center gap-2">
+                Mapa da Região
+                {!isPro && <Lock size={10} className="text-ouro" />}
+              </h4>
+              <p className="text-[9px] text-pergaminho/40">Acesso offline disponível</p>
+            </div>
+          </div>
+          <ChevronRight size={16} className="text-ouro/40 group-hover:text-ouro transition-colors" />
+        </button>
 
         <button
           onClick={handleSendAlert}

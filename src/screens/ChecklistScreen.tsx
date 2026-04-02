@@ -9,14 +9,14 @@ import { useAuth } from '../AuthContext';
 import { PROFILE_CHECKLIST_ITEMS } from '../constants/profiles';
 
 const ChecklistScreen: React.FC = () => {
-  const { profile } = useAuth();
+  const { profile, isAdmin } = useAuth();
   const [items, setItems] = useState<ChecklistItem[]>([]);
   const [newItemText, setNewItemText] = useState('');
   const [loading, setLoading] = useState(true);
 
   const [showClearConfirm, setShowClearConfirm] = useState(false);
 
-  const isExpired = profile ? (!profile.isPro && profile.trialEndsAt && new Date() > new Date(profile.trialEndsAt)) : false;
+  const isExpired = !isAdmin && profile ? (!profile.isPro && profile.trialEndsAt && new Date() > new Date(profile.trialEndsAt)) : false;
 
   useEffect(() => {
     if (!auth.currentUser) return;

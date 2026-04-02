@@ -10,11 +10,11 @@ interface LayoutProps {
 }
 
 const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab }) => {
-  const { profile } = useAuth();
+  const { profile, isAdmin } = useAuth();
   const [isLanguageOpen, setIsLanguageOpen] = useState(false);
   const [currentLang, setCurrentLang] = useState('PT');
 
-  const isExpired = profile ? (!profile.isPro && profile.trialEndsAt && new Date() > new Date(profile.trialEndsAt)) : false;
+  const isExpired = !isAdmin && profile ? (!profile.isPro && profile.trialEndsAt && new Date() > new Date(profile.trialEndsAt)) : false;
 
   const languages = [
     { code: 'PT', name: 'Português', flag: '🇧🇷' },

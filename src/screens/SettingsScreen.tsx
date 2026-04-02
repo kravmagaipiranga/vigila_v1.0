@@ -38,9 +38,7 @@ import {
 } from '../services/firestore';
 
 const SettingsScreen: React.FC = () => {
-  const { user, profile } = useAuth();
-  const isAdmin = user?.email === 'kravmagaipiranga@gmail.com';
-  const isPro = isAdmin || (profile?.isPro && (!profile.proExpirationDate || new Date(profile.proExpirationDate) > new Date()));
+  const { user, profile, isAdmin, isPro } = useAuth();
   
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
   const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
@@ -224,8 +222,8 @@ const SettingsScreen: React.FC = () => {
     return null;
   };
 
-  const isExpired = profile ? (!profile.isPro && profile.trialEndsAt && new Date() > new Date(profile.trialEndsAt)) : false;
-  const isTrial = profile ? (!profile.isPro && profile.trialEndsAt && new Date() <= new Date(profile.trialEndsAt)) : false;
+  const isExpired = !isAdmin && profile ? (!profile.isPro && profile.trialEndsAt && new Date() > new Date(profile.trialEndsAt)) : false;
+  const isTrial = !isAdmin && profile ? (!profile.isPro && profile.trialEndsAt && new Date() <= new Date(profile.trialEndsAt)) : false;
 
   const currentPlan = isAdmin ? 'Vitalício (Admin)' : (isPro ? (profile?.planType || 'PRO') : (isTrial ? 'Teste Grátis' : 'Gratuito'));
   const remainingTime = getRemainingTime();
